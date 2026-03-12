@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import Header from "@/components/layout/Header";
-import Aside from "@/components/layout/Aside";
-//import Footer from "@/components/Footer";
+import LayoutClient from "@/components/layout/LayoutClient";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,11 +29,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children, }: Readonly<{ children: React.ReactNode; }>) {
   return (
     <html lang="en">
       <head>
@@ -46,16 +40,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="css/main.css"/>
       </head>
       <body className="bg-gray-50 dark:bg-gray-800">
-        <Header/>
-        <div className="flex pt-16 overflow-hidden bg-gray-50 dark:bg-gray-900">
-          <Aside/>
-          <div id="sidebarBackdrop" className="fixed inset-0 z-10 hidden bg-gray-900/50 dark:bg-gray-900/90"></div>
-          <div id="main-content" className="relative w-full h-full overflow-y-auto bg-gray-50 lg:ml-64 dark:bg-gray-900">
-            <main>
-              {children}
-            </main>
-          </div>
-        </div>
+        <LayoutClient>{children}</LayoutClient>
       </body>
     </html>
   );
