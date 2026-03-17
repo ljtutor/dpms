@@ -21,6 +21,9 @@ export async function POST(req: Request) {
     if (!user)
       return NextResponse.json({ error: AuthErrors.EMAIL_NOT_FOUND }, { status: 401 });
 
+    if (!user.isActive)
+      return NextResponse.json({ error: AuthErrors.USER_NOT_ACTIVE }, { status: 401 });
+
     if (password .trim() === "")
       return NextResponse.json({ error: ValidationErrors.PASSWORD_REQUIRED }, { status: 400 });
 
