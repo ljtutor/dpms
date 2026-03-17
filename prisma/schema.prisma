@@ -22,4 +22,23 @@ model Users {
   email String @unique
   password String
   birthday DateTime
+  timeEntries TimeEntry[]
+}
+
+model TimeEntry {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         Users     @relation(fields: [userId], references: [id])
+
+  clockIn      DateTime
+  clockOut     DateTime?      // nullable while still on shift
+  breakMinutes Int      @default(0)
+  totalHours   Decimal?
+  status       String
+  notes        String?
+  taskDescription String?
+  kind         String
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
