@@ -1,7 +1,212 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState, type ReactNode } from "react";
+import { Clock, PlayCircle, CalendarDays, Coffee, Sandwich, LogOut } from "lucide-react";
+
+type LogType = "Time In" | "Task" | "Break" | "Lunch" | "Time Out";
+
+type LogEntry = {
+  id: number;
+  type: LogType;
+  time: string;
+  timestamp: number;
+  note?: string;
+};
+
+export default function TimekeepingPage() {
+  const [now, setNow] = useState(new Date());
+  const [selectedType, setSelectedType] = useState<LogType>("Time In");
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleStartLog = () => {
+    const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const newEntry: LogEntry = {
+      id: Date.now(),
+      type: selectedType,
+      time,
+      timestamp: now.getTime(),
+    };
+    setLogs((prev) => [newEntry, ...prev]);
+  };
+
+  const formattedDate = now.toLocaleDateString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const logTypes: { label: LogType; icon?: ReactNode }[] = [
+    { label: "Time In", icon: <CalendarDays className="w-4 h-4" /> },
+    { label: "Task" },
+    { label: "Break", icon: <Coffee className="w-4 h-4" /> },
+    { label: "Lunch", icon: <Sandwich className="w-4 h-4" /> },
+    { label: "Time Out", icon: <LogOut className="w-4 h-4" /> },
+  ];
+
+  const formatDuration = (ms: number) => {
+    if (ms <= 0) return "-";
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes.toString().padStart(2, "0")}m`;
+    }
+    if (minutes > 0) {
+      return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+    }
+    return `${seconds}s`;
+  };
+
   return (
-    ''
+    <section className="px-4 py-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            Timekeeping
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Track your workday in real time.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-6 items-start lg:flex-row">
+          {/* Left column: clock, start button, log type menu */}
+          <div className="flex flex-col gap-4 w-full lg:w-80 xl:w-96">
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-200 px-6 py-5 dark:bg-gray-800 dark:border-gray-700">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Current time
+                  </p>
+                  <div className="mt-2 flex items-end gap-3">
+                    <p className="text-4xl font-semibold leading-none text-gray-900 dark:text-white tabular-nums">
+                      {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    {formattedDate}
+                  </p>
+                </div>
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/40 dark:text-primary-300">
+                  <Clock className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-200 px-6 py-4 dark:bg-gray-800 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={handleStartLog}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-700 px-6 py-3 text-sm font-medium text-white shadow-sm border border-black/70 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900/0"
+              >
+                <PlayCircle className="w-5 h-5" />
+                Start log
+              </button>
+            </div>
+
+            <div className="rounded-2xl bg-white shadow-sm border border-gray-200 px-6 py-4 dark:bg-gray-800 dark:border-gray-700">
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3">
+                Log type
+              </p>
+              <div className="flex flex-col gap-2">
+                {logTypes.map(({ label, icon }) => {
+                  const isActive = selectedType === label;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setSelectedType(label)}
+                      className={`inline-flex items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition
+                        ${
+                          isActive
+                            ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                            : "bg-transparent border-gray-500 text-gray-300 hover:bg-gray-800"
+                        }`}
+                    >
+                      {icon}
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full lg:flex-1 rounded-2xl bg-white shadow-sm border border-gray-200 px-6 py-5 min-h-[260px] dark:bg-gray-800 dark:border-gray-700">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Today&apos;s logs
+                </h2>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  A running list of your time entries.
+                </p>
+              </div>
+            </div>
+
+            {logs.length === 0 ? (
+              <div className="flex h-40 flex-col items-center justify-center text-center rounded-xl border border-dashed border-gray-300 bg-gray-50/70 dark:border-gray-700 dark:bg-gray-900/40">
+                <Clock className="w-6 h-6 text-gray-400 dark:text-gray-500 mb-2" />
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  No logs yet
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Start your day by creating a new timekeeping entry.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+                <div className="max-h-[360px] overflow-y-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-900">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Time
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Type
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                          Duration
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-800 dark:bg-gray-900">
+                      {logs.map((log, index) => {
+                        const previousLog = logs[index - 1];
+                        const endTimestamp = previousLog ? previousLog.timestamp : now.getTime();
+                        const durationMs = endTimestamp - log.timestamp;
+
+                        return (
+                          <tr key={log.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/70">
+                            <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 tabular-nums">
+                              {log.time}
+                            </td>
+                            <td className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                              {log.type}
+                            </td>
+                            <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 tabular-nums">
+                              {formatDuration(durationMs)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
