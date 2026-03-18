@@ -34,7 +34,7 @@ model TimeEntry {
   clockOut     DateTime?      // nullable while still on shift
   breakMinutes Int      @default(0)
   totalHours   Decimal?
-  status       String         // e.g. "PENDING", "APPROVED", "REJECTED"
+  status       String
   notes        String?
   taskDescription String?
   kind         String
