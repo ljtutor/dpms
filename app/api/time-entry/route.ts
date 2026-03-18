@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
     }
 
     const clockIn = new Date(timestamp);
+    const isTimeOut = type === "Time Out";
+    const isTimeIn = type === "Time In";
 
     // Update the previous entry's totalHours (duration until this new log)
     const previousEntry = await prisma.timeEntry.findFirst({
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
     if (previousEntry) {
       const diffMs = clockIn.getTime() - previousEntry.clockIn.getTime();
       if (diffMs > 0) {
-        const totalHours = diffMs / 1000 / 60 / 60; // ms → hours (can include minutes/seconds)
+        const totalHours = diffMs / 1000 / 60 / 60;
         await prisma.timeEntry.update({
           where: { id: previousEntry.id },
           data: { totalHours },
@@ -59,23 +61,73 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const entry = await prisma.timeEntry.create({
-      data: {
-        userId,
-        clockIn,
-        clockOut: null,
-        breakMinutes: 0,
-        totalHours: null,
-        status: "RECORDED",
-        notes: null,
-        taskDescription: type === "Task" ? (typeof taskDescription === "string" ? taskDescription.trim() : null) : null,
-        kind: type,
-      },
-    });
+    // Time Out = end of shift: fixed duration 0, clockOut set to clockIn
+    const clockOut = isTimeOut ? clockIn : null;
+    const totalHours = isTimeOut ? 0 : null;
+
+    // Late Time-In: first "Time In" of the day (GMT+8) after 8:00 AM GMT+8 counts as late
+    let isLate: boolean | null = null;
+    if (isTimeIn) {
+      const gmt8OffsetMs = 8 * 60 * 60 * 1000;
+      const gmt8Time = new Date(clockIn.getTime() + gmt8OffsetMs);
+      const gmt8Year = gmt8Time.getUTCFullYear();
+      const gmt8Month = gmt8Time.getUTCMonth();
+      const gmt8Date = gmt8Time.getUTCDate();
+      const startOfDayGmt8 = new Date(Date.UTC(gmt8Year, gmt8Month, gmt8Date, 0, 0, 0, 0) - gmt8OffsetMs);
+      const endOfDayGmt8 = new Date(startOfDayGmt8.getTime() + 24 * 60 * 60 * 1000 - 1);
+
+      const existingTimeInsToday = await prisma.timeEntry.count({
+        where: {
+          userId,
+          kind: "Time In",
+          clockIn: { gte: startOfDayGmt8, lte: endOfDayGmt8 },
+        },
+      });
+
+      if (existingTimeInsToday === 0) {
+        const hour = gmt8Time.getUTCHours();
+        const minute = gmt8Time.getUTCMinutes();
+        const second = gmt8Time.getUTCSeconds();
+        isLate = hour > 8 || (hour === 8 && (minute > 0 || second > 0));
+      }
+    }
+
+    const baseData = {
+      userId,
+      clockIn,
+      clockOut,
+      breakMinutes: 0,
+      totalHours,
+      status: "RECORDED" as const,
+      notes: null,
+      taskDescription: type === "Task" ? (typeof taskDescription === "string" ? taskDescription.trim() : null) : null,
+      kind: type,
+    };
+
+    let entry;
+    try {
+      entry = await prisma.timeEntry.create({
+        data: { ...baseData, isLate: isLate ?? undefined },
+      });
+    } catch (createError: unknown) {
+      const message = createError instanceof Error ? createError.message : String(createError);
+      const isColumnError =
+        typeof message === "string" &&
+        (message.includes("isLate") || message.includes("column") || message.includes("Unknown column"));
+      if (isColumnError) {
+        entry = await prisma.timeEntry.create({ data: baseData });
+      } else {
+        throw createError;
+      }
+    }
 
     return NextResponse.json({ entry }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: "Failed to create time entry" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: "Failed to create time entry", details: process.env.NODE_ENV === "development" ? message : undefined },
+      { status: 500 }
+    );
   }
 }
 
@@ -104,7 +156,15 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ entries }, { status: 200 });
+    // 9-hour shift checker: total work time today excluding Lunch (in minutes)
+    const totalWorkMinutesToday = entries
+      .filter((e) => e.kind !== "Lunch")
+      .reduce((sum, e) => sum + (e.totalHours != null ? Number(e.totalHours) * 60 : 0), 0);
+
+    return NextResponse.json(
+      { entries, totalWorkMinutesToday: Math.round(totalWorkMinutesToday * 100) / 100 },
+      { status: 200 }
+    );
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch time entries" }, { status: 500 });
   }
