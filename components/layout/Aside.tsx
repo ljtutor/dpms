@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { Calendar, CalendarCheck, Globe, History, Settings } from "lucide-react";
+import { Briefcase, Calendar, CalendarCheck, Clock, Globe, History, Settings, Users } from "lucide-react";
 
 export default function Aside({ sidebarOpen }: { sidebarOpen: boolean }) {
     return (
@@ -12,6 +12,7 @@ export default function Aside({ sidebarOpen }: { sidebarOpen: boolean }) {
                     <div className="flex flex-col flex-1 pt-5 pb-4 overflow-y-auto">
                         <div className="flex-1 px-3 space-y-1 bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                             <ul className="pb-2 space-y-2">
+                            <h3 className="px-3 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">User</h3>
                                 <li>
                                     <Link href="/timekeeping" className="flex items-center p-2 text-base text-gray-900 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700">
                                         <Calendar className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></Calendar>
@@ -28,6 +29,27 @@ export default function Aside({ sidebarOpen }: { sidebarOpen: boolean }) {
                                     <Link href="/" className="flex items-center p-2 text-base text-gray-900 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700">
                                         <CalendarCheck className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></CalendarCheck>
                                         <span className="ml-3" sidebar-toggle-item="">Leave Application</span>
+                                    </Link>
+                                </li>
+                            </ul>
+                            <ul className="pt-2 pb-2 space-y-2">
+                                <h3 className="px-3 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">Admin</h3>
+                                <li>
+                                    <Link href="/positions" className="flex items-center p-2 text-base text-gray-900 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700">
+                                        <Briefcase className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></Briefcase>
+                                        <span className="ml-3" sidebar-toggle-item="">Positions</span>
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/shifts" className="flex items-center p-2 text-base text-gray-900 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700">
+                                        <Clock className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></Clock>
+                                        <span className="ml-3" sidebar-toggle-item="">Shifts</span>
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/users" className="flex items-center p-2 text-base text-gray-900 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700">
+                                        <Users className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></Users>
+                                        <span className="ml-3" sidebar-toggle-item="">Users</span>
                                     </Link>
                                 </li>
                             </ul>
