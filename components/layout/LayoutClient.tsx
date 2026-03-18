@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 
 import Header from "@/components/layout/Header";
@@ -9,6 +9,32 @@ import Footer from "@/components/layout/Footer";
 
 export default function LayoutClient({ children, }: { children: React.ReactNode; }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState<any | null>(null);
+
+  const loadUser = useCallback(async () => {
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+    if (!token) {
+      setUser(null);
+      return;
+    }
+
+    const res = await fetch("/api/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      setUser(null);
+      return;
+    }
+
+    const data = await res.json();
+    setUser(data.user);
+  }, []);
+
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
+
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   const pathname = usePathname();
@@ -33,7 +59,7 @@ export default function LayoutClient({ children, }: { children: React.ReactNode;
         </main>
       ) : (
         <>
-          <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar}/>
+          <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} user={user} />
           <div className="flex pt-16 overflow-hidden bg-gray-50 dark:bg-gray-900">
               <Aside sidebarOpen={sidebarOpen}/>
               <div id="main-content" className="relative w-full h-full overflow-y-auto bg-gray-50 lg:ml-64 dark:bg-gray-900">

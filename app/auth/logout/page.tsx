@@ -12,8 +12,8 @@ export default function Logout() {
         try {
             await fetch("/api/auth/logout", { method: "POST" });
 
+            localStorage.removeItem("token");
             sessionStorage.removeItem("token");
-            sessionStorage.removeItem("user");
             
             sessionStorage.removeItem("success");
             sessionStorage.removeItem("error");

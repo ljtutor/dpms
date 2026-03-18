@@ -6,6 +6,8 @@ export const AuthErrors = {
     NOT_LOGGED_IN: "You are not logged in. Please log in first.",
     USER_NOT_FOUND: "The user you are trying to access does not exist.",
     USER_NOT_ACTIVE: "The user you are trying to access is inactive.",
+    POSITION_NOT_FOUND: "The position you are trying to access does not exist.",
+    SHIFT_NOT_FOUND: "The shift you are trying to access does not exist.",
 };
 
 export const ValidationErrors = {
@@ -18,13 +20,28 @@ export const ValidationErrors = {
     INVALID_USER_ID: "The user ID is invalid.",
     STATUS_REQUIRED: "The user status is required.",
     EMAIL_ALREADY_EXISTS: "The email address you entered is already in use.",
+    ROLE_REQUIRED: "The role is required.",
+    INVALID_ROLE: "The role you entered is invalid.",
+    TITLE_REQUIRED: "The title is required.",
+    POSITION_ALREADY_EXISTS: "The title you entered is already in use.",
+    INVALID_POSITION_ID: "The position ID is invalid.",
+    START_TIME_REQUIRED: "The start time is required.",
+    END_TIME_REQUIRED: "The end time is required.",
+    INVALID_TIME_FORMAT: "The time format is invalid. Use HH:MM or HH:MM:SS.",
+    INVALID_SHIFT_ID: "The shift ID is invalid.",
 };
 
 export const SuccessMessages = {
     LOGIN_SUCCESS: "Authentication successful.",
     LOGOUT_SUCCESS: "You have been logged out successfully.",
-    USER_UPDATED: "User information updated successfully.",
     PASSWORD_CHANGED: "The password has been changed successfully.",
     USER_CREATED: "The user has been created successfully.",
+    USER_UPDATED: "The user information has been updated successfully.",
     USER_REMOVED: "The user has been removed successfully.",
+    POSITION_CREATED: "The position has been created successfully.",
+    POSITION_UPDATED: "The position information has been updated successfully.",
+    POSITION_REMOVED: "The position has been removed successfully.",
+    SHIFT_CREATED: "The shift has been created successfully.",
+    SHIFT_UPDATED: "The shift information has been updated successfully.",
+    SHIFT_REMOVED: "The shift has been removed successfully.",
 };

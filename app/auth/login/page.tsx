@@ -27,15 +27,10 @@ export default function Login() {
             setError(error);
         }
 
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            try {
-                const user = JSON.parse(storedUser);
-                if (user?.email) {
-                    setEmail(user.email);
-                    setRemember(true);
-                }
-            } catch (_) {}
+        const storedEmail = localStorage.getItem("email");
+        if (storedEmail) {
+            setEmail(storedEmail);
+            setRemember(true);
         }
     }, []);
 
@@ -60,14 +55,12 @@ export default function Login() {
         if (res.ok) {
             if (remember) {
                 localStorage.setItem("token", data.token);
-                localStorage.setItem("user", JSON.stringify(data.user));
+                localStorage.setItem("email", email);
             }
             else {
                 localStorage.removeItem("token");
-                localStorage.removeItem("user");
-            
+                localStorage.removeItem("email");
                 sessionStorage.setItem("token", data.token);
-                sessionStorage.setItem("user", JSON.stringify(data.user));
             }
             
             sessionStorage.removeItem("success");

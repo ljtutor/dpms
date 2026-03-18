@@ -14,6 +14,11 @@ datasource db {
   url = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  USER
+}
+
 model Users {
   id Int @id @default(autoincrement())
   first_name String
@@ -24,6 +29,9 @@ model Users {
   birthday DateTime?
   position_id Int?
   position Positions? @relation(fields: [position_id], references: [id])
+  shift_id Int?
+  shift Shifts? @relation(fields: [shift_id], references: [id])
+  role Role @default(USER)
   isActive Boolean @default(true)
   created_at DateTime @default(now())
   updated_at DateTime?
@@ -31,7 +39,17 @@ model Users {
 
 model Positions {
   id Int @id @default(autoincrement())
-  title String
+  title String @unique
+  users Users[]
+  created_at DateTime @default(now())
+  updated_at DateTime?
+}
+
+model Shifts {
+  id Int @id @default(autoincrement())
+  title String @unique
+  start_time DateTime @db.Time(0)
+  end_time DateTime @db.Time(0)
   users Users[]
   created_at DateTime @default(now())
   updated_at DateTime?

@@ -9,34 +9,18 @@ import { Bell, Eye, Menu, Moon, Sun, X } from "lucide-react";
 import Logout from "@/app/auth/logout/page";
 
 export default function Header({
-    children,
     sidebarOpen,
-    toggleSidebar
+    toggleSidebar,
+    user
 }: {
-    children: React.ReactNode;
     sidebarOpen: boolean;
-    toggleSidebar: () => void
+    toggleSidebar: () => void;
+    user: any | null;
 }) {
     const [notificationOpen, setNotificationOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
-    const [user, setUser] = useState<{
-        id: number;
-        name: string;
-        email: string;
-    } | null>(null);
-
-    useEffect(() => {
-        const user = localStorage.getItem("user") || sessionStorage.getItem("user");
-        if (user) {
-            try {
-                setUser(JSON.parse(user));
-            } catch (error) {
-                setUser(null);
-            }
-        }
-    }, []);
 
     const notificationRef = useRef<HTMLDivElement>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
@@ -160,10 +144,10 @@ export default function Header({
                                     <div className="absolute right-0 z-50 text-base list-none bg-white divide-y divide-gray-100 rounded shadow dark:bg-gray-700 dark:divide-gray-600" style={{marginTop: "195px"}} data-popper-placement="bottom">
                                         <div className="px-4 py-3" role="none">
                                             <p className="text-sm text-gray-900 dark:text-white" role="none">
-                                                {user?.name || "Guest"}
+                                                {user?.first_name} {user?.last_name}
                                             </p>
                                             <p className="text-sm font-medium text-gray-900 truncate dark:text-gray-300" role="none">
-                                                {user?.email || "guest@example.com"}
+                                                {user?.position || user?.role.charAt(0).toUpperCase() + user?.role.slice(1).toLowerCase()}
                                             </p>
                                         </div>
                                         <ul className="py-1" role="none">
@@ -171,7 +155,7 @@ export default function Header({
                                                 <Link href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white" role="menuitem">Settings</Link>
                                             </li>
                                             <li>
-                                                <Logout>{children}</Logout>
+                                                <Logout/>
                                             </li>
                                         </ul>
                                     </div>

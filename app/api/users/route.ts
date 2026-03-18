@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@/app/generated/prisma/client";
+import { Role } from "@/app/generated/prisma/enums";
 import { AuthErrors, ValidationErrors, SuccessMessages } from "@/config/messages";
 
 import bcrypt from "bcryptjs";
@@ -15,7 +16,8 @@ export async function POST(req: Request) {
             last_name,
             email,
             birthday,
-            position_id
+            position_id,
+            role
         } = body;
 
         if (first_name.trim() === "")
@@ -33,6 +35,12 @@ export async function POST(req: Request) {
         if (birthday.trim() === "")
             return NextResponse.json({ error: ValidationErrors.BIRTHDAY_REQUIRED }, { status: 400 });
 
+        if (role.trim() === "")
+            return NextResponse.json({ error: ValidationErrors.ROLE_REQUIRED }, { status: 400 });
+
+        if (role.trim() !== Role.ADMIN && role.trim() !== Role.USER)
+            return NextResponse.json({ error: ValidationErrors.INVALID_ROLE }, { status: 400 });
+
         const user = await prisma.users.findUnique({where: { email }});
         if (user)
             return NextResponse.json({ error: ValidationErrors.EMAIL_ALREADY_EXISTS }, { status: 400 });
@@ -45,7 +53,8 @@ export async function POST(req: Request) {
                 email,
                 password: await bcrypt.hash(`Dataplus@${new Date().getFullYear()}`, 10),
                 birthday: birthday ? new Date(birthday) : null,
-                position_id: position_id ? Number(position_id) : null
+                position_id: position_id ? Number(position_id) : null,
+                role
             },
         });
         return NextResponse.json(

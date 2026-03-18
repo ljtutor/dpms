@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+
 import { PrismaClient } from "@/app/generated/prisma/client";
+import { Role } from "@/app/generated/prisma/enums";
+
 import { AuthErrors, ValidationErrors, SuccessMessages } from "@/config/messages";
 
 const prisma = new PrismaClient();
@@ -15,6 +18,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             email,
             birthday,
             position_id,
+            role,
             isActive
         } = body;
 
@@ -40,6 +44,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         if (birthday.trim() === "")
             return NextResponse.json({ error: ValidationErrors.BIRTHDAY_REQUIRED }, { status: 400 });
 
+        if (role.trim() === "")
+            return NextResponse.json({ error: ValidationErrors.ROLE_REQUIRED }, { status: 400 });
+
+        if (role.trim() !== Role.ADMIN && role.trim() !== Role.USER)
+            return NextResponse.json({ error: ValidationErrors.INVALID_ROLE }, { status: 400 });
+
         if (isActive.trim() === "")
             return NextResponse.json({ error: ValidationErrors.STATUS_REQUIRED }, { status: 400 });
         
@@ -52,6 +62,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
                 email,
                 birthday: birthday ? new Date(birthday) : null,
                 position_id: position_id ? Number(position_id) : null,
+                role,
                 isActive: isActive === "true" ? true : false,
                 updated_at: new Date()
             },

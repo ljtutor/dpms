@@ -3,6 +3,8 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { Role } from "@/app/generated/prisma/enums";
+
 import FlashMessage from "@/components/ui/FlashMessage";
 import Image from "next/image";
 import Link from "next/link";
@@ -39,6 +41,7 @@ export default function UsersClient({ users, positions }: UsersClientProps) {
         const email = formData.get("email") as string;
         const birthday = formData.get("birthday") as string | null;
         const position_id = formData.get("position_id") as string | null;
+        const role = formData.get("role") as Role;
         const isActive = formData.get("isActive") as string | null;
 
         try {
@@ -55,6 +58,7 @@ export default function UsersClient({ users, positions }: UsersClientProps) {
                         email,
                         birthday,
                         position_id,
+                        role,
                         isActive
                     })
                 }
@@ -103,6 +107,14 @@ export default function UsersClient({ users, positions }: UsersClientProps) {
         }
     };
 
+    const PAGE_SIZE = 10;
+    const [page, setPage] = useState(1);
+    const total = users.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const startIndex = (page - 1) * PAGE_SIZE;
+    const endIndex = Math.min(startIndex + PAGE_SIZE, total);
+    const paginatedUsers = users.slice(startIndex, endIndex);
+
     return (
         <>
             <div className="p-4 bg-white block sm:flex items-center justify-between border-b border-gray-200 lg:mt-1.5 dark:bg-gray-800 dark:border-gray-700">
@@ -135,7 +147,7 @@ export default function UsersClient({ users, positions }: UsersClientProps) {
                             </form>
                         </div>
                         <div className="flex items-center ml-auto space-x-2 sm:space-x-3">
-                            <button type="button" onClick={() => { setUserModalOpen(true); setUserModalMode("insert"); setEditingUser(null); }} className="inline-flex items-center justify-center w-1/2 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                            <button type="button" onClick={() => { setUserModalOpen(true); setUserModalMode("insert"); setEditingUser(null); }} className="inline-flex items-center justify-center w-1/2 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-green-400 hover:bg-green-500 focus:ring-4 focus:ring-green-300 sm:w-auto dark:bg-green-700 dark:bg-green-400 dark:hover:bg-green-500 dark:focus:ring-primary-800">
                                 <UserPlus className="w-5 h-5 mr-2 -ml-1"/> Add user
                             </button>
                         </div>
@@ -150,44 +162,36 @@ export default function UsersClient({ users, positions }: UsersClientProps) {
                             <table className="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
                                 <thead className="bg-gray-100 dark:bg-gray-700">
                                     <tr>
-                                        <th scope="col" className="p-4"></th>
                                         <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">First Name</th>
                                         <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Middle Name</th>
                                         <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Last Name</th>
                                         <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Email</th>
                                         <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Birthday</th>
                                         <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Position</th>
+                                        <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Role</th>
                                         <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Status</th>
-                                        <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Created At</th>
-                                        <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Updated At</th>
                                         <th scope="col" className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                                    {users.map((user) => (
+                                    {paginatedUsers.map((user) => (
                                         <tr key={user.id} className="hover:bg-gray-100 dark:hover:bg-gray-700">
-                                            <td className="p-2">
-                                                <div className="flex items-center">
-                                                    <Image src="/img/blank-profile.png" alt="Profile" className="w-8 h-8 rounded-full" width={32} height={32}/>
-                                                </div>
-                                            </td>
                                             <td className="p-2 text-sm text-gray-900 whitespace-nowrap dark:text-white">{user.first_name}</td>
                                             <td className="p-2 text-sm text-gray-900 whitespace-nowrap dark:text-white">{user.middle_name ?? ""}</td>
                                             <td className="p-2 text-sm text-gray-900 whitespace-nowrap dark:text-white">{user.last_name}</td>
                                             <td className="p-2 text-sm text-gray-900 whitespace-nowrap dark:text-white">{user.email}</td>
                                             <td className="p-2 text-sm text-gray-900 whitespace-nowrap dark:text-white">{user.birthday ? user.birthday.toLocaleDateString() : ""}</td>
                                             <td className="p-2 text-sm text-gray-900 whitespace-nowrap dark:text-white">{user.position?.title ?? ""}</td>
+                                            <td className="p-2 text-sm text-gray-900 whitespace-nowrap dark:text-white">{user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()}</td>
                                             <td className="p-2 text-sm text-gray-900 whitespace-nowrap dark:text-white">
-                                                <div className="flex items-center text-xs">
+                                                <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
                                                     {user.isActive ? (
-                                                        <><div className="h-2 w-2 rounded-full bg-green-400 mr-2"></div> Active</>
+                                                        <><div className="h-2 w-2 rounded-full bg-green-400 mr-1"></div> Active</>
                                                     ) : (
-                                                        <><div className="h-2 w-2 rounded-full bg-red-500 mr-2"></div> Inactive</>
+                                                        <><div className="h-2 w-2 rounded-full bg-red-500 mr-1"></div> Inactive</>
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="p-2 text-sm text-gray-500 whitespace-nowrap dark:text-gray-400">{user.created_at.toISOString().slice(0, 19).replace("T", " ")}</td>
-                                            <td className="p-2 text-sm text-gray-500 whitespace-nowrap dark:text-gray-400">{user.updated_at ? user.updated_at.toISOString().slice(0, 19).replace("T", " "): ""}</td>
                                             <td className="p-2 space-x-2 whitespace-nowrap">
                                                 <button type="button" onClick={() => { setUserModalOpen(true); setUserModalMode("update"); setEditingUser(user); }} className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
                                                     <UserPen className="w-4 h-4"/>
@@ -206,23 +210,23 @@ export default function UsersClient({ users, positions }: UsersClientProps) {
             </div>
             <div className="sticky bottom-0 right-0 items-center w-full p-4 bg-white border-t border-gray-200 sm:flex sm:justify-between dark:bg-gray-800 dark:border-gray-700">
                 <div className="flex items-center mb-4 sm:mb-0">
-                    <Link href="#" className="inline-flex justify-center p-1 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} className="inline-flex justify-center p-1 text-gray-500 rounded hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" style={{ opacity: page <= 1 ? 0.5 : 1 }} disabled={page <= 1}>
                         <ChevronLeft className="w-7 h-7"/>
-                    </Link>
-                    <Link href="#" className="inline-flex justify-center p-1 mr-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                    </button>
+                    <button onClick={() => setPage((p) => Math.max(1, p + 1))} className="inline-flex justify-center p-1 mr-2 text-gray-500 rounded hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" style={{ opacity: page <= totalPages ? 0.5 : 1 }} disabled={page <= totalPages}>
                         <ChevronRight className="w-7 h-7"/>
-                    </Link>
+                    </button>
                     <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                        Showing <span className="font-semibold text-gray-900 dark:text-white">1-20</span> of <span className="font-semibold text-gray-900 dark:text-white">2290</span>
+                        Showing <span className="font-semibold text-gray-900 dark:text-white">{total === 0 ? 0 : startIndex + 1}-{endIndex}</span> of <span className="font-semibold text-gray-900 dark:text-white">{total}</span>
                     </span>
                 </div>
                 <div className="flex items-center space-x-3">
-                    <Link href="#" className="inline-flex items-center justify-center flex-1 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} className="inline-flex items-center justify-center flex-1 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" style={{ opacity: page <= 1 ? 0.5 : 1 }} disabled={page <= 1}>
                         <ChevronLeft className="w-5 h-5 mr-1 -ml-1"/> Previous
-                    </Link>
-                    <Link href="#" className="inline-flex items-center justify-center flex-1 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                    </button>
+                    <button onClick={() => setPage((p) => Math.max(1, p + 1))} className="inline-flex items-center justify-center flex-1 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" style={{ opacity: page <= totalPages ? 0.5 : 1 }} disabled={page <= totalPages}>
                         Next <ChevronRight className="w-5 h-5 ml-1 -mr-1"/>
-                    </Link>
+                    </button>
                 </div>
             </div>
             {userModalOpen && (
@@ -254,6 +258,8 @@ export default function UsersClient({ users, positions }: UsersClientProps) {
                                                 <label htmlFor="last_name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Last Name <span className="text-red-500">*</span></label>
                                                 <input type="text" id="last_name" name="last_name" defaultValue={editingUser?.last_name ?? ""} className="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Last Name" autoComplete="off" required/>
                                             </div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-6">
                                             <div className="col-span-2">
                                                 <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email <span className="text-red-500">*</span></label>
                                                 <input type="email" id="email" name="email" defaultValue={editingUser?.email ?? ""} className="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="name@dataplus.com.ph" autoComplete="off" required/>
@@ -267,9 +273,23 @@ export default function UsersClient({ users, positions }: UsersClientProps) {
                                                     ))}
                                                 </select>
                                             </div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-6">
                                             <div className="col-span-1">
                                                 <label htmlFor="birthday" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Birthday <span className="text-red-500">*</span></label>
                                                 <input type="date" id="birthday" name="birthday" defaultValue={editingUser?.birthday ? editingUser?.birthday.toISOString().split("T")[0] : ""} className="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Birthday" autoComplete="off" required/>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-6">
+                                            <div className="col-span-1">
+                                                <label htmlFor="role" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Role <span className="text-red-500">*</span></label>
+                                                <select id="role" name="role" defaultValue={editingUser?.role ?? Role.USER} className="shadow-sm bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" required>
+                                                    {Object.values(Role).map((value) => (
+                                                        <option key={value} value={value}>
+                                                            {value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()}
+                                                        </option>
+                                                    ))}
+                                                </select>
                                             </div>
                                             {userModalMode === "update"
                                                 ? <div className="col-span-1">
@@ -283,11 +303,27 @@ export default function UsersClient({ users, positions }: UsersClientProps) {
                                             }
                                         </div>
                                     </div>
+                                    {userModalMode === "update"
+                                        ? <div className="p-6 space-y-6 border-t border-gray-200 rounded-b dark:border-gray-700">
+                                            <div className="grid grid-cols-3 gap-6">
+                                                <div className="col-span-1">
+                                                    <label htmlFor="created_at" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Created at</label>
+                                                    <input type="text" id="created_at" defaultValue={editingUser?.created_at ? editingUser?.created_at.toISOString().slice(0, 19).replace("T", " ") : ""} className="shadow-sm bg-gray-200 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-900 dark:border-gray-700 dark:placeholder-gray-400 dark:text-gray-400" disabled/>
+                                                </div>
+                                                <div className="col-span-1">
+                                                    <label htmlFor="updated_at" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Updated at</label>
+                                                    <input type="text" id="updated_at" defaultValue={editingUser?.updated_at ? editingUser?.updated_at.toISOString().slice(0, 19).replace("T", " ") : ""} className="shadow-sm bg-gray-200 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-900 dark:border-gray-700 dark:placeholder-gray-400 dark:text-gray-400" disabled/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        : ""
+                                    }
                                     <div className="items-center p-6 flex justify-end gap-4 border-t border-gray-200 rounded-b dark:border-gray-700">
-                                        <button type="submit" className="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
-                                            {userModalMode === "insert" ? "Add user" : "Save changes"}
-                                        </button>
-                                        <button type="button" onClick={() => setUserModalOpen(false)} className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 sm:mt-0 sm:w-auto">Cancel</button>
+                                        {userModalMode === "insert"
+                                            ? <button type="submit" className="text-white bg-green-400 hover:bg-green-500 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-3 py-2 text-center dark:bg-green-400 dark:hover:bg-green-500 dark:focus:ring-green-800">Add user</button>
+                                            : <button type="submit" className="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-3 py-2 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Save changes</button>
+                                        }
+                                        <button type="button" onClick={() => setUserModalOpen(false)} className="inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 border border-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 sm:mt-0 sm:w-auto">Cancel</button>
                                     </div>
                                 </form>
                             </div>
