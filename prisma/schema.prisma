@@ -35,7 +35,7 @@ model Users {
   timeEntries TimeEntry[]
   isActive Boolean @default(true)
   created_at DateTime @default(now())
-  updated_at DateTime?
+  updated_at DateTime? @updatedAt
 }
 
 model Positions {
@@ -43,7 +43,7 @@ model Positions {
   title String @unique
   users Users[]
   created_at DateTime @default(now())
-  updated_at DateTime?
+  updated_at DateTime? @updatedAt
 }
 
 model Shifts {
@@ -53,7 +53,7 @@ model Shifts {
   end_time DateTime @db.Time(0)
   users Users[]
   created_at DateTime @default(now())
-  updated_at DateTime?
+  updated_at DateTime? @updatedAt
 }
 
 model TimeEntry {
@@ -69,6 +69,7 @@ model TimeEntry {
   notes        String?
   taskDescription String?
   kind         String
+  isLate       Boolean?       // true if first Time In of day was after 8:00 AM GMT+8
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
