@@ -27,7 +27,6 @@ model Users {
   email String @unique
   password String
   birthday DateTime
-  birthday DateTime?
   position_id Int?
   position Positions? @relation(fields: [position_id], references: [id])
   shift_id Int?
