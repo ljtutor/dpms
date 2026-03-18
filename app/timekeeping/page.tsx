@@ -11,6 +11,7 @@ type LogEntry = {
   time: string;
   timestamp: number;
   note?: string;
+  isLate?: boolean;
 };
 
 export default function TimekeepingPage() {
@@ -19,6 +20,13 @@ export default function TimekeepingPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [taskDescription, setTaskDescription] = useState("");
+  const [totalWorkMinutesToday, setTotalWorkMinutesToday] = useState<number>(0);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const getToken = () =>
+    typeof window !== "undefined"
+      ? token ?? localStorage.getItem("token") ?? sessionStorage.getItem("token")
+      : null;
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -58,7 +66,10 @@ export default function TimekeepingPage() {
           kind: LogType;
           clockIn: string;
           taskDescription: string | null;
+          isLate: boolean | null;
         }>;
+
+        setTotalWorkMinutesToday(Number(data.totalWorkMinutesToday) || 0);
 
         const mapped: LogEntry[] = entries.map((e) => {
           const date = new Date(e.clockIn);
@@ -68,6 +79,7 @@ export default function TimekeepingPage() {
             time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
             timestamp: date.getTime(),
             note: e.taskDescription ?? undefined,
+            isLate: e.isLate ?? undefined,
           };
         });
 
@@ -81,8 +93,10 @@ export default function TimekeepingPage() {
   }, [token]);
 
   const handleStartLog = async () => {
-    if (!token) {
-      // Not logged in; do not attempt to log to the backend
+    setAuthError(null);
+    const authToken = getToken();
+    if (!authToken) {
+      setAuthError("Please log in to record time entries.");
       return;
     }
 
@@ -101,11 +115,11 @@ export default function TimekeepingPage() {
     setLogs((prev) => [newEntry, ...prev]);
 
     try {
-      await fetch("/api/time-entry", {
+      const res = await fetch("/api/time-entry", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
           type: selectedType,
@@ -114,8 +128,30 @@ export default function TimekeepingPage() {
         }),
       });
       if (selectedType === "Task") setTaskDescription("");
+      if (res.ok) {
+        const refetchRes = await fetch("/api/time-entry", { headers: { Authorization: `Bearer ${authToken}` } });
+        if (refetchRes.ok) {
+          const data = await refetchRes.json();
+          const entries = (data.entries ?? []) as Array<{ id: number; kind: LogType; clockIn: string; taskDescription: string | null; isLate: boolean | null }>;
+          setTotalWorkMinutesToday(Number(data.totalWorkMinutesToday) || 0);
+          setLogs(
+            entries.map((e) => {
+              const date = new Date(e.clockIn);
+              return {
+                id: e.id,
+                type: e.kind,
+                time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+                timestamp: date.getTime(),
+                note: e.taskDescription ?? undefined,
+                isLate: e.isLate ?? undefined,
+              };
+            })
+          );
+        }
+        
+      }
     } catch {
-      // Swallow errors for now; UI already shows the local entry
+
     }
   };
 
@@ -187,6 +223,9 @@ export default function TimekeepingPage() {
             </div>
 
             <div className="rounded-2xl bg-white shadow-sm border border-gray-200 px-6 py-4 dark:bg-gray-800 dark:border-gray-700">
+              {authError && (
+                <p className="mb-3 text-sm text-amber-600 dark:text-amber-400">{authError}</p>
+              )}
               <button
                 type="button"
                 onClick={handleStartLog}
@@ -243,15 +282,26 @@ export default function TimekeepingPage() {
           </div>
 
           <div className="w-full lg:flex-1 rounded-2xl bg-white shadow-sm border border-gray-200 px-6 py-5 min-h-[260px] dark:bg-gray-800 dark:border-gray-700">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Today&apos;s logs
-                </h2>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  A running list of your time entries.
-                </p>
+            <div className="mb-4 flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                    Today&apos;s logs
+                  </h2>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    A running list of your time entries.
+                  </p>
+                </div>
               </div>
+              {logs.length > 0 && (
+                <p className="text-xs text-gray-600 dark:text-gray-300">
+                  Work time today (excl. lunch):{" "}
+                  <span className="font-medium tabular-nums">
+                    {Math.floor(totalWorkMinutesToday / 60)}h {Math.floor(totalWorkMinutesToday % 60)}m
+                  </span>{" "}
+                  / 9h shift
+                </p>
+              )}
             </div>
 
             {logs.length === 0 ? (
@@ -289,11 +339,18 @@ export default function TimekeepingPage() {
                         const previousLog = logs[index - 1];
                         const endTimestamp = previousLog ? previousLog.timestamp : now.getTime();
                         const durationMs = endTimestamp - log.timestamp;
+                        const isTimeOut = log.type === "Time Out";
+                        const durationDisplay = isTimeOut ? "-" : formatDuration(durationMs);
 
                         return (
                           <tr key={log.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-800/70">
                             <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 tabular-nums">
                               {log.time}
+                              {log.isLate && (
+                                <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                  Late
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200">
                               {log.type}
@@ -302,7 +359,7 @@ export default function TimekeepingPage() {
                               {log.note ?? "-"}
                             </td>
                             <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400 tabular-nums">
-                              {formatDuration(durationMs)}
+                              {durationDisplay}
                             </td>
                           </tr>
                         );
