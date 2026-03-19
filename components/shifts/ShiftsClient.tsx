@@ -107,11 +107,19 @@ export default function ShiftsClient({ shifts }: ShiftsClientProps) {
 
     const PAGE_SIZE = 10;
     const [page, setPage] = useState(1);
-    const total = shifts.length;
+    const [search, setSearch] = useState("");
+    const normalizedSearch = search.trim().toLowerCase();
+    const filteredShifts = shifts.filter((s) => {
+        if (!normalizedSearch) return true;
+        const hay = [s.title ?? "", s.start_time ?? "", s.end_time ?? ""].join(" ").toLowerCase();
+        return hay.includes(normalizedSearch);
+    });
+
+    const total = filteredShifts.length;
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const startIndex = (page - 1) * PAGE_SIZE;
     const endIndex = Math.min(startIndex + PAGE_SIZE, total);
-    const paginatedShifts = shifts.slice(startIndex, endIndex);
+    const paginatedShifts = filteredShifts.slice(startIndex, endIndex);
 
     return (
         <>
@@ -140,7 +148,7 @@ export default function ShiftsClient({ shifts }: ShiftsClientProps) {
                             <form method="GET" className="lg:pr-3">
                                 <label htmlFor="search" className="sr-only">Search</label>
                                 <div className="relative mt-1 lg:w-64 xl:w-96">
-                                    <input type="text" id="search" name="search" placeholder="Search" className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"/>
+                                    <input type="text" id="search" name="search" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search" autoComplete="off"/>
                                 </div>
                             </form>
                         </div>
@@ -193,7 +201,7 @@ export default function ShiftsClient({ shifts }: ShiftsClientProps) {
                     <button onClick={() => setPage((p) => Math.max(1, p - 1))} className="inline-flex justify-center p-1 text-gray-500 rounded hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" style={{ opacity: page <= 1 ? 0.5 : 1 }} disabled={page <= 1}>
                         <ChevronLeft className="w-7 h-7"/>
                     </button>
-                    <button onClick={() => setPage((p) => Math.max(1, p + 1))} className="inline-flex justify-center p-1 mr-2 text-gray-500 rounded hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" style={{ opacity: page <= totalPages ? 0.5 : 1 }} disabled={page <= totalPages}>
+                    <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="inline-flex justify-center p-1 mr-2 text-gray-500 rounded hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" style={{ opacity: page >= totalPages ? 0.5 : 1 }} disabled={page >= totalPages}>
                         <ChevronRight className="w-7 h-7"/>
                     </button>
                     <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
@@ -204,7 +212,7 @@ export default function ShiftsClient({ shifts }: ShiftsClientProps) {
                     <button onClick={() => setPage((p) => Math.max(1, p - 1))} className="inline-flex items-center justify-center flex-1 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" style={{ opacity: page <= 1 ? 0.5 : 1 }} disabled={page <= 1}>
                         <ChevronLeft className="w-5 h-5 mr-1 -ml-1"/> Previous
                     </button>
-                    <button onClick={() => setPage((p) => Math.max(1, p + 1))} className="inline-flex items-center justify-center flex-1 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" style={{ opacity: page <= totalPages ? 0.5 : 1 }} disabled={page <= totalPages}>
+                    <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="inline-flex items-center justify-center flex-1 px-3 py-2 text-sm font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" style={{ opacity: page >= totalPages ? 0.5 : 1 }} disabled={page >= totalPages}>
                         Next <ChevronRight className="w-5 h-5 ml-1 -mr-1"/>
                     </button>
                 </div>

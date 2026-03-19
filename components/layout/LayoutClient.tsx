@@ -12,14 +12,8 @@ export default function LayoutClient({ children, }: { children: React.ReactNode;
   const [user, setUser] = useState<any | null>(null);
 
   const loadUser = useCallback(async () => {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-    if (!token) {
-      setUser(null);
-      return;
-    }
-
     const res = await fetch("/api/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
     });
 
     if (!res.ok) {
@@ -59,9 +53,9 @@ export default function LayoutClient({ children, }: { children: React.ReactNode;
         </main>
       ) : (
         <>
-          <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} user={user} />
+          <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} user={user}/>
           <div className="flex pt-16 overflow-hidden bg-gray-50 dark:bg-gray-900">
-              <Aside sidebarOpen={sidebarOpen}/>
+              <Aside sidebarOpen={sidebarOpen} user={user}/>
               <div id="main-content" className="relative w-full h-full overflow-y-auto bg-gray-50 lg:ml-64 dark:bg-gray-900">
                   <main>{children}</main>
                   <Footer/>

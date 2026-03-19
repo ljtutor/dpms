@@ -40,14 +40,25 @@ export async function POST(req: Request) {
       { expiresIn: "1d" }
     );
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: SuccessMessages.LOGIN_SUCCESS,
         token,
       },
-    { status: 200 }
-  );
+      { status: 200 }
+    );
+    
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      //secure: false,
+      sameSite: "strict",
+      //sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24
+    });
 
+    return response;
   } catch (error) {
     return NextResponse.json({ error: AuthErrors.SERVER_ERROR }, { status: 500 });
   }

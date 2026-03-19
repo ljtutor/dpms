@@ -8,6 +8,8 @@ export const AuthErrors = {
     USER_NOT_ACTIVE: "The user you are trying to access is inactive.",
     POSITION_NOT_FOUND: "The position you are trying to access does not exist.",
     SHIFT_NOT_FOUND: "The shift you are trying to access does not exist.",
+    UNABLE_TO_LOAD_USER: "Unable to load user information.",
+    INVALID_TOKEN: "Invalid token. Please log in again.",
 };
 
 export const ValidationErrors = {
@@ -16,7 +18,6 @@ export const ValidationErrors = {
     PASSWORD_REQUIRED: "The password is required.",
     FIRST_NAME_REQUIRED: "The first name is required.",
     LAST_NAME_REQUIRED: "The last name is required.",
-    BIRTHDAY_REQUIRED: "The birthday is required.",
     INVALID_USER_ID: "The user ID is invalid.",
     STATUS_REQUIRED: "The user status is required.",
     EMAIL_ALREADY_EXISTS: "The email address you entered is already in use.",

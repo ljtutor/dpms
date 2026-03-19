@@ -1,17 +1,23 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+
 import { PrismaClient } from "@/app/generated/prisma/client";
 import { AuthErrors } from "@/config/messages";
+
 import jwt from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 
 export async function GET(req: Request) {
     try {
-        const auth = req.headers.get("authorization") || "";
-        const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+        const authHeader = req.headers.get("authorization") ?? "";
+        const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+        const cookieToken = (await cookies()).get("token")?.value;
 
-        if (!token)
+        const token = headerToken ?? cookieToken;
+        if (!token) {
             return NextResponse.json({ error: AuthErrors.NOT_LOGGED_IN }, { status: 401 });
+        }
 
         const payload = jwt.verify(token, process.env.JWT_SECRET!) as { id: number };
 

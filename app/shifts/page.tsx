@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import prisma from "@/lib/prisma";
-import Authorized from "@/components/Authorized";
 import ShiftsClient from "@/components/shifts/ShiftsClient";
 
 export const metadata: Metadata = {
@@ -13,8 +12,6 @@ export default async function Shifts() {
     });
 
     return (
-        <Authorized>
-            <ShiftsClient shifts={shifts} />
-        </Authorized>
+        <ShiftsClient shifts={shifts} />
     );
 }

@@ -19,6 +19,14 @@ enum Role {
   USER
 }
 
+enum LeaveType {
+  VACATION
+  SICK
+  EMERGENCY
+  NO_PAY
+  OTHERS
+}
+
 model Users {
   id Int @id @default(autoincrement())
   first_name String
@@ -26,7 +34,7 @@ model Users {
   last_name String
   email String @unique
   password String
-  birthday DateTime
+  birthday DateTime?
   position_id Int?
   position Positions? @relation(fields: [position_id], references: [id])
   shift_id Int?
