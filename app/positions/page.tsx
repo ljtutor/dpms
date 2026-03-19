@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import prisma from "@/lib/prisma";
-import Authorized from "@/components/Authorized";
 import PositionsClient from "@/components/positions/PositionsClient";
 
 export const metadata: Metadata = {
@@ -13,8 +12,6 @@ export default async function Positions() {
     });
 
     return (
-        <Authorized>
-            <PositionsClient positions={positions} />
-        </Authorized>
+        <PositionsClient positions={positions} />
     );
 }

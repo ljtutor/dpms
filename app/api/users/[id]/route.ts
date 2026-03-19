@@ -41,9 +41,6 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
             return NextResponse.json({ error: ValidationErrors.INVALID_EMAIL_FORMAT }, { status: 400 });
 
-        if (birthday.trim() === "")
-            return NextResponse.json({ error: ValidationErrors.BIRTHDAY_REQUIRED }, { status: 400 });
-
         if (role.trim() === "")
             return NextResponse.json({ error: ValidationErrors.ROLE_REQUIRED }, { status: 400 });
 

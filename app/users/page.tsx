@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import prisma from "@/lib/prisma";
-import Authorized from "@/components/Authorized";
 import UsersClient from "@/components/users/UsersClient";
 
 export const metadata: Metadata = {
@@ -18,8 +17,6 @@ export default async function Users() {
     });
 
     return (
-        <Authorized>
-            <UsersClient users={users} positions={positions} />
-        </Authorized>
+        <UsersClient users={users} positions={positions} />
     );
 }
