@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
+import FlashMessage from "@/components/ui/FlashMessage";
+import { Eye, EyeOff } from "lucide-react";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -12,24 +13,44 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [remember, setRemember] = useState(false);
+    const [success, setSuccess] = useState("");
     const [error, setError] = useState("");
 
     const searchParams = useSearchParams();
 
     useEffect(() => {
+        const success = sessionStorage.getItem("success");
         const error = sessionStorage.getItem("error");
+        if (success) {
+            setSuccess(success);
+            sessionStorage.removeItem("success");
+        }
         if (error) {
             setError(error);
-            sessionStorage.removeItem("error");
+        }
+
+        const queryError = searchParams.get("error");
+        if (queryError) {
+            setError(queryError);
+            // Remove the query param so it doesn't persist on refresh.
+            window.history.replaceState({}, "", window.location.pathname);
+        }
+
+        const storedEmail = localStorage.getItem("email");
+        if (storedEmail) {
+            setEmail(storedEmail);
+            setRemember(true);
         }
     }, [searchParams]);
 
     const handleLogin = async (e: any) => {
         e.preventDefault();
+        setSuccess("");
         setError("");
 
-        const res = await fetch("/api/auth/login", {
+        const response = await fetch("/api/auth/login", {
             method: "POST",
+            credentials: "include",
             headers: {
                 "Content-Type": "application/json"
             },
@@ -39,15 +60,30 @@ export default function Login() {
             })
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
-        if (res.ok) {
+        if (response.ok) {
+
             if (remember) {
                 localStorage.setItem("token", data.token);
+                sessionStorage.removeItem("token");
             }
             else {
                 sessionStorage.setItem("token", data.token);
+                localStorage.removeItem("token");
             }
+
+            if (remember) {
+                localStorage.setItem("email", email);
+            }
+            else {
+                localStorage.removeItem("email");
+            }
+            
+            sessionStorage.removeItem("success");
+            sessionStorage.removeItem("error");
+
+            setSuccess(data.message);
             window.location.href = "/";
         }
         else {
@@ -58,24 +94,20 @@ export default function Login() {
     return (
         <div className="flex flex-col items-center justify-center px-6 pt-8 mx-auto md:h-screen pt:mt-0 dark:bg-gray-900">
             <Link href="/" className="flex items-center justify-center mb-4 text-2xl font-semibold dark:text-white">
-                <Image src="/img/logo.png" alt="Data Plus Logo" className="w-auto" width={135} height={50}/>
+                <Image src="/img/logo.png" alt="Data Plus Logo" className="w-auto" width={135} height={50} loading="eager"/>
             </Link>
             <div className="w-full max-w-xl p-6 space-y-8 sm:p-8 bg-white rounded-lg shadow dark:bg-gray-800">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Sign in to platform</h2>
                 <form onSubmit={handleLogin} className="mt-8 space-y-6">
-                    {error && (
-                        <div className="flex items-center gap-2 text-sm text-red-500 dark:text-red-700 bg-red-100 dark:bg-red-200 p-2 rounded-md">
-                            <AlertCircle className="h-4 w-4" />
-                            <span>{error}</span>
-                        </div>
-                    )}
+                    {success && <FlashMessage type="success" message={success}/>}
+                    {error && <FlashMessage type="error" message={error}/>}
                     <div>
                         <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email</label>
                         <input type="email" id="email" name="email" value={email} onChange={(e)=>setEmail(e.target.value)} className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="name@dataplus.com.ph" required/>
                     </div>
                     <div className="relative">
                         <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
-                        <input type={showPassword ? "text" : "password"} id="password" name="password" value={password} onChange={(e)=>setPassword(e.target.value)} className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="******" required/>
+                        <input type={showPassword ? "text" : "password"} id="password" name="password" value={password} onChange={(e)=>setPassword(e.target.value)} className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="******" autoComplete="off" required/>
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute text-gray-400 hover:text-gray-500" style={{top: "41px", right: "15px"}}>
                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>

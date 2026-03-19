@@ -21,6 +21,9 @@ export async function POST(req: Request) {
     if (!user)
       return NextResponse.json({ error: AuthErrors.EMAIL_NOT_FOUND }, { status: 401 });
 
+    if (!user.isActive)
+      return NextResponse.json({ error: AuthErrors.USER_NOT_ACTIVE }, { status: 401 });
+
     if (password .trim() === "")
       return NextResponse.json({ error: ValidationErrors.PASSWORD_REQUIRED }, { status: 400 });
 
@@ -37,19 +40,25 @@ export async function POST(req: Request) {
       { expiresIn: "1d" }
     );
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         message: SuccessMessages.LOGIN_SUCCESS,
         token,
-        user: {
-          id: user.id,
-          name: `${user.first_name} ${user.last_name}`,
-          email: user.email
-        }
       },
-    { status: 200 }
-  );
+      { status: 200 }
+    );
+    
+    response.cookies.set("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      //secure: false,
+      sameSite: "strict",
+      //sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24
+    });
 
+    return response;
   } catch (error) {
     return NextResponse.json({ error: AuthErrors.SERVER_ERROR }, { status: 500 });
   }
