@@ -18,6 +18,13 @@ type ApiDay = {
 type ApiResponse = {
   weekStart: string;
   weekEnd: string;
+  canViewOthers: boolean;
+  selectedUserId: number;
+  users: {
+    id: number;
+    name: string;
+    position: string | null;
+  }[];
   days: ApiDay[];
   totalWorkMinutesWeek: number;
 };
@@ -32,13 +39,24 @@ function getCurrentWeekMondayISO() {
   return monday.toISOString().slice(0, 10);
 }
 
+function toMondayISO(input: string) {
+  const d = new Date(input);
+  if (Number.isNaN(d.getTime())) return getCurrentWeekMondayISO();
+  const day = d.getDay(); // 0 = Sun, 1 = Mon
+  const diff = (day === 0 ? -6 : 1) - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
+
 export default function WeeklyActivityPage() {
   const [weekStart, setWeekStart] = useState(getCurrentWeekMondayISO);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async (weekStartIso: string) => {
+  const fetchData = async (weekStartIso: string, userId: number | null) => {
     setLoading(true);
     setError(null);
     try {
@@ -46,7 +64,9 @@ export default function WeeklyActivityPage() {
         typeof window !== "undefined"
           ? localStorage.getItem("token") ?? sessionStorage.getItem("token")
           : null;
-      const res = await fetch(`/api/weekly-activity?weekStart=${weekStartIso}`, {
+      const query = new URLSearchParams({ weekStart: weekStartIso });
+      if (userId) query.set("userId", String(userId));
+      const res = await fetch(`/api/weekly-activity?${query.toString()}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
       if (!res.ok) {
@@ -57,6 +77,7 @@ export default function WeeklyActivityPage() {
       }
       const json = (await res.json()) as ApiResponse;
       setData(json);
+      setSelectedUserId(json.selectedUserId);
     } catch {
       setError("Failed to load weekly activity.");
       setData(null);
@@ -66,8 +87,13 @@ export default function WeeklyActivityPage() {
   };
 
   useEffect(() => {
-    fetchData(weekStart);
+    fetchData(weekStart, selectedUserId);
   }, [weekStart]);
+
+  useEffect(() => {
+    if (selectedUserId == null) return;
+    fetchData(weekStart, selectedUserId);
+  }, [selectedUserId]);
 
   const handlePrevWeek = () => {
     const d = new Date(weekStart);
@@ -81,42 +107,44 @@ export default function WeeklyActivityPage() {
     setWeekStart(d.toISOString().slice(0, 10));
   };
 
-  const handleExportCsv = async () => {
+  const handleExportExcel = async () => {
     try {
       const token =
         typeof window !== "undefined"
           ? localStorage.getItem("token") ?? sessionStorage.getItem("token")
           : null;
+      const query = new URLSearchParams({ weekStart, format: "xlsx" });
+      if (selectedUserId) query.set("userId", String(selectedUserId));
       const res = await fetch(
-        `/api/weekly-activity?weekStart=${weekStart}&format=csv`,
+        `/api/weekly-activity?${query.toString()}`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         },
       );
       if (!res.ok) {
         const body = await res.text();
-        console.error("CSV export failed", body);
-        alert("Failed to export CSV. Please try again.");
+        console.error("Export failed", body);
+        alert("Failed to export. Please try again.");
         return;
       }
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `weekly-activity-${weekStart}.csv`;
+      a.download = `weekly-activity-${weekStart}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert("Failed to export CSV. Please try again.");
+      alert("Failed to export. Please try again.");
     }
   };
 
   return (
     <section className="px-4 py-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
               Weekly Activity Report
@@ -125,13 +153,37 @@ export default function WeeklyActivityPage() {
               View a summary of your timekeeping logs for the selected week.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col items-start gap-2">
+            {data?.canViewOthers && (
+              <div className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm dark:border-gray-600 dark:bg-gray-800">
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-300">
+                  Employee
+                </span>
+                <div>
+                  <select
+                    value={selectedUserId ?? ""}
+                    onChange={(e) => setSelectedUserId(Number(e.target.value))}
+                    className="min-w-[260px] rounded-full border border-gray-200 bg-white py-1.5 pl-3 pr-9 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 [color-scheme:light] dark:[color-scheme:dark]"
+                  >
+                    {data.users.map((u) => (
+                      <option
+                        key={u.id}
+                        value={u.id}
+                        className="bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-100"
+                      >
+                        {u.name}{u.position ? ` (${u.position})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
             <div className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800">
               <CalendarDays className="h-4 w-4 text-gray-500 dark:text-gray-300" />
               <input
                 type="date"
                 value={weekStart}
-                onChange={(e) => setWeekStart(e.target.value)}
+                onChange={(e) => setWeekStart(toMondayISO(e.target.value))}
                 className="border-0 bg-transparent text-sm text-gray-900 focus:outline-none dark:text-gray-100"
               />
             </div>
@@ -153,11 +205,11 @@ export default function WeeklyActivityPage() {
             </div>
             <button
               type="button"
-              onClick={handleExportCsv}
+              onClick={handleExportExcel}
               className="inline-flex items-center gap-2 rounded-full bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900/0"
             >
               <Download className="h-4 w-4" />
-              Export CSV
+              Export Excel
             </button>
           </div>
         </div>
