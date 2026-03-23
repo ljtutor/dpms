@@ -63,16 +63,6 @@ export default function Login() {
         const data = await response.json();
 
         if (response.ok) {
-
-            if (remember) {
-                localStorage.setItem("token", data.token);
-                sessionStorage.removeItem("token");
-            }
-            else {
-                sessionStorage.setItem("token", data.token);
-                localStorage.removeItem("token");
-            }
-
             if (remember) {
                 localStorage.setItem("email", email);
             }
