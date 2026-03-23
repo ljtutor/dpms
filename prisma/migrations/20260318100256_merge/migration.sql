@@ -1,2 +1,2 @@
--- AlterTable
-ALTER TABLE "TimeEntry" ADD COLUMN     "isLate" BOOLEAN;
+-- AlterTable (idempotent for reset/replay)
+ALTER TABLE "TimeEntry" ADD COLUMN IF NOT EXISTS "isLate" BOOLEAN;

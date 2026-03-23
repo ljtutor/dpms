@@ -186,6 +186,15 @@ export default function TimekeepingPage() {
     return `${seconds}s`;
   };
 
+  const liveTotalWorkMinutes = logs.reduce((sum, log, index) => {
+    if (log.type === "Lunch" || log.type === "Time Out") return sum;
+    const previousLog = logs[index - 1];
+    const endTimestamp = previousLog ? previousLog.timestamp : now.getTime();
+    const durationMs = endTimestamp - log.timestamp;
+    if (durationMs <= 0) return sum;
+    return sum + durationMs / 1000 / 60;
+  }, 0);
+
   return (
     <section className="px-4 py-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -248,11 +257,21 @@ export default function TimekeepingPage() {
                       key={label}
                       type="button"
                       onClick={() => setSelectedType(label)}
+                      style={
+                        isActive
+                          ? {
+                              backgroundColor: "#2563eb",
+                              borderColor: "#1d4ed8",
+                              color: "#ffffff",
+                              boxShadow: "0 0 0 2px rgba(147, 197, 253, 0.9)",
+                            }
+                          : undefined
+                      }
                       className={`inline-flex items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition
                         ${
                           isActive
-                            ? "bg-blue-600 border-blue-600 text-white shadow-sm"
-                            : "bg-transparent border-gray-500 text-gray-300 hover:bg-gray-800"
+                            ? "shadow-sm dark:bg-blue-600 dark:border-blue-600 dark:text-white dark:ring-blue-800"
+                            : "bg-transparent border-gray-400 text-gray-700 hover:bg-gray-100 dark:border-gray-500 dark:text-gray-300 dark:hover:bg-gray-800"
                         }`}
                     >
                       {icon}
@@ -297,7 +316,7 @@ export default function TimekeepingPage() {
                 <p className="text-xs text-gray-600 dark:text-gray-300">
                   Work time today (excl. lunch):{" "}
                   <span className="font-medium tabular-nums">
-                    {Math.floor(totalWorkMinutesToday / 60)}h {Math.floor(totalWorkMinutesToday % 60)}m
+                    {Math.floor(liveTotalWorkMinutes / 60)}h {Math.floor(liveTotalWorkMinutes % 60)}m
                   </span>{" "}
                   / 9h shift
                 </p>
