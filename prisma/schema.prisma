@@ -41,7 +41,11 @@ model Users {
   shift Shifts? @relation(fields: [shift_id], references: [id])
   role Role @default(USER)
   timeEntries TimeEntry[]
+  ownedCalendarReminders CalendarReminder[] @relation("CalendarReminderOwner")
+  sharedCalendarReminders ReminderShare[]
   isActive Boolean @default(true)
+  /// Minutes from midnight (GMT+8) when the 9h workday (+1h lunch) starts. Null = 8:00 AM.
+  scheduleStartMinutes Int?
   created_at DateTime @default(now())
   updated_at DateTime? @updatedAt
 }
@@ -81,4 +85,31 @@ model TimeEntry {
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model CalendarReminder {
+  id Int @id @default(autoincrement())
+  ownerId Int
+  owner Users @relation("CalendarReminderOwner", fields: [ownerId], references: [id])
+  date DateTime
+  title String
+  note String?
+  time String?
+  shares ReminderShare[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, date])
+}
+
+model ReminderShare {
+  id Int @id @default(autoincrement())
+  reminderId Int
+  userId Int
+  reminder CalendarReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([reminderId, userId])
+  @@index([userId])
 }

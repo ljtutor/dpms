@@ -60,14 +60,10 @@ export default function WeeklyActivityPage() {
     setLoading(true);
     setError(null);
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("token") ?? sessionStorage.getItem("token")
-          : null;
       const query = new URLSearchParams({ weekStart: weekStartIso });
       if (userId) query.set("userId", String(userId));
       const res = await fetch(`/api/weekly-activity?${query.toString()}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        credentials: "include",
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -109,16 +105,12 @@ export default function WeeklyActivityPage() {
 
   const handleExportExcel = async () => {
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("token") ?? sessionStorage.getItem("token")
-          : null;
       const query = new URLSearchParams({ weekStart, format: "xlsx" });
       if (selectedUserId) query.set("userId", String(selectedUserId));
       const res = await fetch(
         `/api/weekly-activity?${query.toString()}`,
         {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          credentials: "include",
         },
       );
       if (!res.ok) {
@@ -320,4 +312,5 @@ export default function WeeklyActivityPage() {
     </section>
   );
 }
+
 

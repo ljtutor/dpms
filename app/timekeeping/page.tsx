@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Clock, PlayCircle, CalendarDays, Coffee, Sandwich, LogOut } from "lucide-react";
+import { Clock, PlayCircle, CalendarDays, Coffee, Sandwich, LogOut, CalendarClock } from "lucide-react";
 
 type LogType = "Time In" | "Task" | "Break" | "Lunch" | "Time Out";
 
@@ -14,35 +14,76 @@ type LogEntry = {
   isLate?: boolean;
 };
 
+type ScheduleInfo = {
+  startMinutes: number;
+  endMinutes: number;
+  startLabel: string;
+  endLabel: string;
+  shiftEndsNextCalendarDay: boolean;
+  targetWorkHours: number;
+  lunchHours: number;
+  clockSpanHours: number;
+};
+
+const DEFAULT_SCHEDULE: ScheduleInfo = {
+  startMinutes: 8 * 60,
+  endMinutes: 18 * 60,
+  startLabel: "8:00 AM",
+  endLabel: "6:00 PM",
+  shiftEndsNextCalendarDay: false,
+  targetWorkHours: 9,
+  lunchHours: 1,
+  clockSpanHours: 10,
+};
+
+function minutesToParts(m: number): { h12: number; minute: number; period: "AM" | "PM" } {
+  const total = ((m % 1440) + 1440) % 1440;
+  const h24 = Math.floor(total / 60);
+  const minute = total % 60;
+  const period: "AM" | "PM" = h24 >= 12 ? "PM" : "AM";
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return { h12, minute, period };
+}
+
+function partsToMinutes(h12: number, minute: number, period: "AM" | "PM"): number {
+  let h24 = h12 % 12;
+  if (period === "PM") h24 += 12;
+  return h24 * 60 + minute;
+}
+
 export default function TimekeepingPage() {
   const [now, setNow] = useState(new Date());
   const [selectedType, setSelectedType] = useState<LogType>("Time In");
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [token, setToken] = useState<string | null>(null);
+  /** Login uses httpOnly cookie; JS can’t read it — session is confirmed via /api/auth/me */
+  const [sessionReady, setSessionReady] = useState(false);
   const [taskDescription, setTaskDescription] = useState("");
   const [totalWorkMinutesToday, setTotalWorkMinutesToday] = useState<number>(0);
   const [authError, setAuthError] = useState<string | null>(null);
-
-  const getToken = () =>
-    typeof window !== "undefined"
-      ? token ?? localStorage.getItem("token") ?? sessionStorage.getItem("token")
-      : null;
-
+  const [schedule, setSchedule] = useState<ScheduleInfo>(DEFAULT_SCHEDULE);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [draftHour, setDraftHour] = useState("8");
+  const [draftMinute, setDraftMinute] = useState("00");
+  const [draftPeriod, setDraftPeriod] = useState<"AM" | "PM">("AM");
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    const storedToken =
-      typeof window !== "undefined"
-        ? localStorage.getItem("token") ?? sessionStorage.getItem("token")
-        : null;
-    if (storedToken) setToken(storedToken);
+    let cancelled = false;
+    fetch("/api/auth/me", { credentials: "include" }).then((res) => {
+      if (!cancelled && res.ok) setSessionReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    if (!token) {
+    if (!sessionReady) {
       setLogs([]);
       return;
     }
@@ -50,9 +91,7 @@ export default function TimekeepingPage() {
     const fetchLogs = async () => {
       try {
         const res = await fetch("/api/time-entry", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: "include",
         });
 
         if (!res.ok) {
@@ -70,6 +109,9 @@ export default function TimekeepingPage() {
         }>;
 
         setTotalWorkMinutesToday(Number(data.totalWorkMinutesToday) || 0);
+        if (data.schedule && typeof data.schedule === "object") {
+          setSchedule(data.schedule as ScheduleInfo);
+        }
 
         const mapped: LogEntry[] = entries.map((e) => {
           const date = new Date(e.clockIn);
@@ -90,12 +132,11 @@ export default function TimekeepingPage() {
     };
 
     fetchLogs();
-  }, [token]);
+  }, [sessionReady]);
 
   const handleStartLog = async () => {
     setAuthError(null);
-    const authToken = getToken();
-    if (!authToken) {
+    if (!sessionReady) {
       setAuthError("Please log in to record time entries.");
       return;
     }
@@ -117,9 +158,9 @@ export default function TimekeepingPage() {
     try {
       const res = await fetch("/api/time-entry", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
           type: selectedType,
@@ -129,11 +170,16 @@ export default function TimekeepingPage() {
       });
       if (selectedType === "Task") setTaskDescription("");
       if (res.ok) {
-        const refetchRes = await fetch("/api/time-entry", { headers: { Authorization: `Bearer ${authToken}` } });
+        const refetchRes = await fetch("/api/time-entry", {
+          credentials: "include",
+        });
         if (refetchRes.ok) {
           const data = await refetchRes.json();
           const entries = (data.entries ?? []) as Array<{ id: number; kind: LogType; clockIn: string; taskDescription: string | null; isLate: boolean | null }>;
           setTotalWorkMinutesToday(Number(data.totalWorkMinutesToday) || 0);
+          if (data.schedule && typeof data.schedule === "object") {
+            setSchedule(data.schedule as ScheduleInfo);
+          }
           setLogs(
             entries.map((e) => {
               const date = new Date(e.clockIn);
@@ -195,16 +241,87 @@ export default function TimekeepingPage() {
     return sum + durationMs / 1000 / 60;
   }, 0);
 
+  const openScheduleModal = () => {
+    setScheduleError(null);
+    const p = minutesToParts(schedule.startMinutes);
+    setDraftHour(String(p.h12));
+    setDraftMinute(p.minute.toString().padStart(2, "0"));
+    setDraftPeriod(p.period);
+    setScheduleModalOpen(true);
+  };
+
+  const applyPresetMinutes = (m: number) => {
+    const p = minutesToParts(m);
+    setDraftHour(String(p.h12));
+    setDraftMinute(p.minute.toString().padStart(2, "0"));
+    setDraftPeriod(p.period);
+  };
+
+  const saveSchedule = async () => {
+    const h = Number.parseInt(draftHour, 10);
+    const min = Number.parseInt(draftMinute, 10);
+    if (!Number.isFinite(h) || h < 1 || h > 12 || !Number.isFinite(min) || min < 0 || min > 59) {
+      setScheduleError("Enter a valid time.");
+      return;
+    }
+    const scheduleStartMinutes = partsToMinutes(h, min, draftPeriod);
+    setScheduleSaving(true);
+    setScheduleError(null);
+    try {
+      const res = await fetch("/api/users/me/schedule", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduleStartMinutes }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setScheduleError(typeof err.error === "string" ? err.error : "Could not save schedule.");
+        return;
+      }
+      const refetch = await fetch("/api/time-entry", { credentials: "include" });
+      if (refetch.ok) {
+        const data = await refetch.json();
+        if (data.schedule && typeof data.schedule === "object") {
+          setSchedule(data.schedule as ScheduleInfo);
+        }
+      }
+      setScheduleModalOpen(false);
+    } catch {
+      setScheduleError("Could not save schedule.");
+    } finally {
+      setScheduleSaving(false);
+    }
+  };
+
+  const shiftSummaryLine = sessionReady
+    ? `Shift (GMT+8): ${schedule.startLabel} – ${schedule.endLabel}${
+        schedule.shiftEndsNextCalendarDay ? " (end next calendar day)" : ""
+      } · ${schedule.targetWorkHours}h work + ${schedule.lunchHours}h lunch (${schedule.clockSpanHours}h on clock)`
+    : null;
+
   return (
     <section className="px-4 py-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Timekeeping
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Track your workday in real time.
-          </p>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              Timekeeping
+            </h1>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Track your workday in real time.
+            </p>
+          </div>
+          {sessionReady && (
+            <button
+              type="button"
+              onClick={openScheduleModal}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
+            >
+              <CalendarClock className="h-4 w-4" />
+              Edit Schedule
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col gap-6 items-start lg:flex-row">
@@ -312,13 +429,16 @@ export default function TimekeepingPage() {
                   </p>
                 </div>
               </div>
+              {shiftSummaryLine && (
+                <p className="text-xs text-gray-600 dark:text-gray-300">{shiftSummaryLine}</p>
+              )}
               {logs.length > 0 && (
                 <p className="text-xs text-gray-600 dark:text-gray-300">
                   Work time today (excl. lunch):{" "}
                   <span className="font-medium tabular-nums">
                     {Math.floor(liveTotalWorkMinutes / 60)}h {Math.floor(liveTotalWorkMinutes % 60)}m
                   </span>{" "}
-                  / 9h shift
+                  / {schedule.targetWorkHours}h target
                 </p>
               )}
             </div>
@@ -391,7 +511,118 @@ export default function TimekeepingPage() {
           </div>
         </div>
       </div>
+
+      {scheduleModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="schedule-modal-title"
+        >
+          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-600 dark:bg-gray-800">
+            <h2 id="schedule-modal-title" className="text-lg font-semibold text-gray-900 dark:text-white">
+              Edit schedule
+            </h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Set when your shift starts in <span className="font-medium">GMT+8</span>. Your day is always{" "}
+              <span className="font-medium">9 hours of work</span> plus a <span className="font-medium">1-hour lunch</span>{" "}
+              (10 hours on the clock). Example: 8:00 AM → 6:00 PM.
+            </p>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Current window: {schedule.startLabel} – {schedule.endLabel}
+              {schedule.shiftEndsNextCalendarDay ? " (end next calendar day)" : ""}.
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {[
+                { label: "8:00 AM", m: 8 * 60 },
+                { label: "10:00 AM", m: 10 * 60 },
+                { label: "2:00 PM", m: 14 * 60 },
+                { label: "6:00 PM", m: 18 * 60 },
+              ].map(({ label, m }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => applyPresetMinutes(m)}
+                  className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-200 dark:hover:bg-blue-900/70"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-end gap-2">
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Hour
+                </label>
+                <select
+                  value={draftHour}
+                  onChange={(e) => setDraftHour(e.target.value)}
+                  className="mt-1 rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                >
+                  {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Minute
+                </label>
+                <select
+                  value={draftMinute}
+                  onChange={(e) => setDraftMinute(e.target.value)}
+                  className="mt-1 rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                >
+                  {Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0")).map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  &nbsp;
+                </label>
+                <select
+                  value={draftPeriod}
+                  onChange={(e) => setDraftPeriod(e.target.value as "AM" | "PM")}
+                  className="mt-1 rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
+            </div>
+
+            {scheduleError && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{scheduleError}</p>}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setScheduleModalOpen(false)}
+                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveSchedule}
+                disabled={scheduleSaving}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {scheduleSaving ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
+
 

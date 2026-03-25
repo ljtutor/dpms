@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@/app/generated/prisma/client";
-import jwt from "jsonwebtoken";
 import ExcelJS from "exceljs";
+import { getUserIdFromRequest } from "@/lib/auth-request";
 
 const prisma = new PrismaClient();
 const MANAGER_POSITIONS = new Set([
@@ -10,27 +10,6 @@ const MANAGER_POSITIONS = new Set([
   "Business Development Manager",
   "Project Manager",
 ]);
-
-function getUserIdFromRequest(req: NextRequest): { ok: true; userId: number } | { ok: false; response: NextResponse } {
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const token = authHeader.split(" ")[1]!;
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    return { ok: false, response: NextResponse.json({ error: "Server configuration error" }, { status: 500 }) };
-  }
-
-  try {
-    const decoded = jwt.verify(token, secret) as { id: number; email: string };
-    return { ok: true, userId: decoded.id };
-  } catch {
-    return { ok: false, response: NextResponse.json({ error: "Invalid token" }, { status: 401 }) };
-  }
-}
 
 function parseWeekStart(searchParams: URLSearchParams): Date {
   const toMonday = (input: Date) => {
@@ -57,7 +36,7 @@ function formatTimeLabel(date: Date) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userResult = getUserIdFromRequest(req);
+    const userResult = await getUserIdFromRequest(req);
     if (!userResult.ok) return userResult.response;
     const currentUserId = userResult.userId;
 

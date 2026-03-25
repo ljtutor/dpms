@@ -7,7 +7,7 @@ import Link from "next/link";
 
 import { Role } from "@/app/generated/prisma/enums";
 
-import { Briefcase, Calendar, ClipboardList, ChevronDown, Clock, Globe, History, Settings, Users } from "lucide-react";
+import { Briefcase, Calendar, CalendarDays, ClipboardList, ChevronDown, Clock, Globe, History, Settings, Users } from "lucide-react";
 
 export default function Aside({
     sidebarOpen,
@@ -42,6 +42,12 @@ export default function Aside({
                                     <Link href="/weekly-activity" className={linkClass("/weekly-activity")}>
                                         <History className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></History>
                                         <span className="ml-3" sidebar-toggle-item="">Weekly Activity Report</span>
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/employee-calendar" className={linkClass("/employee-calendar")}>
+                                        <CalendarDays className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></CalendarDays>
+                                        <span className="ml-3" sidebar-toggle-item="">Employee Calendar</span>
                                     </Link>
                                 </li>
                                 <li>

@@ -1,33 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@/app/generated/prisma/client";
-import jwt from "jsonwebtoken";
+import { getUserIdFromRequest } from "@/lib/auth-request";
+import {
+  endMinutesAfterStart,
+  formatMinutesAs12h,
+  getScheduleStartMinutes,
+  isLateFirstTimeIn,
+  LUNCH_MINUTES,
+  shiftEndsNextCalendarDay,
+  WORK_MINUTES_EXCLUDING_LUNCH,
+} from "@/lib/schedule";
 
 const prisma = new PrismaClient();
 
-function getUserIdFromRequest(req: NextRequest): { ok: true; userId: number } | { ok: false; response: NextResponse } {
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return { ok: false, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-  }
-
-  const token = authHeader.split(" ")[1]!;
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    return { ok: false, response: NextResponse.json({ error: "Server configuration error" }, { status: 500 }) };
-  }
-
-  try {
-    const decoded = jwt.verify(token, secret) as { id: number; email: string };
-    return { ok: true, userId: decoded.id };
-  } catch {
-    return { ok: false, response: NextResponse.json({ error: "Invalid token" }, { status: 401 }) };
-  }
+function schedulePayload(scheduleStartMinutes: number | null) {
+  const start = getScheduleStartMinutes(scheduleStartMinutes);
+  const end = endMinutesAfterStart(start);
+  return {
+    startMinutes: start,
+    endMinutes: end,
+    startLabel: formatMinutesAs12h(start),
+    endLabel: formatMinutesAs12h(end),
+    shiftEndsNextCalendarDay: shiftEndsNextCalendarDay(start),
+    targetWorkHours: WORK_MINUTES_EXCLUDING_LUNCH / 60,
+    lunchHours: LUNCH_MINUTES / 60,
+    clockSpanHours: (WORK_MINUTES_EXCLUDING_LUNCH + LUNCH_MINUTES) / 60,
+  };
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const userResult = getUserIdFromRequest(req);
+    const userResult = await getUserIdFromRequest(req);
     if (!userResult.ok) return userResult.response;
     const userId = userResult.userId;
 
@@ -43,6 +46,12 @@ export async function POST(req: NextRequest) {
     const clockIn = new Date(timestamp);
     const isTimeOut = type === "Time Out";
     const isTimeIn = type === "Time In";
+
+    const userRow = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { scheduleStartMinutes: true },
+    });
+    const scheduleStartM = getScheduleStartMinutes(userRow?.scheduleStartMinutes ?? null);
 
     // Update the previous entry's totalHours (duration until this new log)
     const previousEntry = await prisma.timeEntry.findFirst({
@@ -65,7 +74,7 @@ export async function POST(req: NextRequest) {
     const clockOut = isTimeOut ? clockIn : null;
     const totalHours = isTimeOut ? 0 : null;
 
-    // Late Time-In: first "Time In" of the day (GMT+8) after 8:00 AM GMT+8 counts as late
+    // Late Time-In: first "Time In" of the calendar day (GMT+8) after scheduled start (GMT+8)
     let isLate: boolean | null = null;
     if (isTimeIn) {
       const gmt8OffsetMs = 8 * 60 * 60 * 1000;
@@ -85,10 +94,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (existingTimeInsToday === 0) {
-        const hour = gmt8Time.getUTCHours();
-        const minute = gmt8Time.getUTCMinutes();
-        const second = gmt8Time.getUTCSeconds();
-        isLate = hour > 8 || (hour === 8 && (minute > 0 || second > 0));
+        isLate = isLateFirstTimeIn(clockIn, scheduleStartM);
       }
     }
 
@@ -133,9 +139,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const userResult = getUserIdFromRequest(req);
+    const userResult = await getUserIdFromRequest(req);
     if (!userResult.ok) return userResult.response;
     const userId = userResult.userId;
+
+    const userRow = await prisma.users.findUnique({
+      where: { id: userId },
+      select: { scheduleStartMinutes: true },
+    });
 
     const now = new Date();
     const startOfDay = new Date(now);
@@ -162,7 +173,11 @@ export async function GET(req: NextRequest) {
       .reduce((sum, e) => sum + (e.totalHours != null ? Number(e.totalHours) * 60 : 0), 0);
 
     return NextResponse.json(
-      { entries, totalWorkMinutesToday: Math.round(totalWorkMinutesToday * 100) / 100 },
+      {
+        entries,
+        totalWorkMinutesToday: Math.round(totalWorkMinutesToday * 100) / 100,
+        schedule: schedulePayload(userRow?.scheduleStartMinutes ?? null),
+      },
       { status: 200 }
     );
   } catch (error) {

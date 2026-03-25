@@ -14,7 +14,7 @@ export async function GET(req: Request) {
         const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
         const cookieToken = (await cookies()).get("token")?.value;
 
-        const token = headerToken ?? cookieToken;
+        const token = cookieToken ?? headerToken;
         if (!token) {
             return NextResponse.json({ error: AuthErrors.NOT_LOGGED_IN }, { status: 401 });
         }
@@ -41,6 +41,7 @@ export async function GET(req: Request) {
                     last_name: user.last_name,
                     position: user.position?.title ?? null,
                     role: user.role,
+                    scheduleStartMinutes: user.scheduleStartMinutes,
                 },
             },
             { status: 200 }

@@ -26,13 +26,8 @@ export default function LeaveRequest() {
     }, []);
 
     useEffect(() => {
-        const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-        if (!token) return;
-
         fetch("/api/auth/me", {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
+            credentials: "include",
         }).then(async (res) => {
             const data = await res.json();
             if (!res.ok) {

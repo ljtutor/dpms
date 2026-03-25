@@ -13,6 +13,7 @@ export const AuthErrors = {
 };
 
 export const ValidationErrors = {
+    INVALID_REQUEST_BODY: "The request body is invalid.",
     EMAIL_REQUIRED: "The email address is required.",
     INVALID_EMAIL_FORMAT: "The email address format is invalid.",
     PASSWORD_REQUIRED: "The password is required.",
