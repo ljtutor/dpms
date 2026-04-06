@@ -27,6 +27,12 @@ enum LeaveType {
   OTHERS
 }
 
+enum TimeEntryEditRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model Users {
   id Int @id @default(autoincrement())
   first_name String
@@ -41,6 +47,8 @@ model Users {
   shift Shifts? @relation(fields: [shift_id], references: [id])
   role Role @default(USER)
   timeEntries TimeEntry[]
+  timeEntryEditRequestsRequested TimeEntryEditRequest[] @relation("TimeEntryEditRequester")
+  timeEntryEditRequestsReviewed TimeEntryEditRequest[] @relation("TimeEntryEditReviewer")
   ownedCalendarReminders CalendarReminder[] @relation("CalendarReminderOwner")
   sharedCalendarReminders ReminderShare[]
   isActive Boolean @default(true)
@@ -83,8 +91,36 @@ model TimeEntry {
   kind         String
   isLate       Boolean?       // true if first Time In of day was after 8:00 AM GMT+8
 
+  editRequests TimeEntryEditRequest[]
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model TimeEntryEditRequest {
+  id                      Int       @id @default(autoincrement())
+  timeEntryId             Int
+  timeEntry               TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
+  requesterId             Int
+  requester               Users     @relation("TimeEntryEditRequester", fields: [requesterId], references: [id])
+
+  proposedClockIn         DateTime
+  proposedKind            String
+  proposedTaskDescription String?
+  employeeNote            String?
+
+  status                  TimeEntryEditRequestStatus @default(PENDING)
+  reviewedById            Int?
+  reviewer                Users?    @relation("TimeEntryEditReviewer", fields: [reviewedById], references: [id])
+  reviewedAt              DateTime?
+  reviewerComment         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([timeEntryId])
+  @@index([requesterId])
 }
 
 model CalendarReminder {

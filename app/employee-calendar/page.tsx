@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -9,6 +11,8 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+
+import { useSpringHover, useSpringTap } from "@/lib/motion-presets";
 
 type CalendarUser = {
   id: number;
@@ -141,6 +145,7 @@ export default function EmployeeCalendarPage() {
   const [timePeriod, setTimePeriod] = useState<"AM" | "PM">("AM");
   const [noteInput, setNoteInput] = useState("");
   const [shareUserIds, setShareUserIds] = useState<number[]>([]);
+  const [shareUsersOpen, setShareUsersOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -150,6 +155,13 @@ export default function EmployeeCalendarPage() {
   const [reminders, setReminders] = useState<CalendarReminder[]>([]);
   const [sessionReady, setSessionReady] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const tap = useSpringTap();
+  const hoverScale = useSpringHover();
+
+  const shareableUsers = useMemo(
+    () => users.filter((u) => u.id !== currentUserId),
+    [users, currentUserId],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -301,6 +313,7 @@ export default function EmployeeCalendarPage() {
     setTimePeriod("AM");
     setNoteInput("");
     setShareUserIds([]);
+    setShareUsersOpen(false);
   };
 
   const closeModal = () => {
@@ -409,37 +422,46 @@ export default function EmployeeCalendarPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <motion.button
+              type="button"
               onClick={goToToday}
+              whileTap={tap}
+              whileHover={{ scale: hoverScale }}
               className="rounded-full border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
             >
               Today
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              type="button"
               onClick={() =>
                 setVisibleMonth(
                   (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
                 )
               }
+              whileTap={tap}
+              whileHover={{ scale: hoverScale }}
               className="rounded-full border border-gray-300 bg-white p-2 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
               aria-label="Previous month"
             >
               <ChevronLeft className="h-5 w-5" />
-            </button>
+            </motion.button>
             <div className="min-w-[170px] text-center text-lg font-semibold text-gray-800 dark:text-gray-100">
               {monthTitle}
             </div>
-            <button
+            <motion.button
+              type="button"
               onClick={() =>
                 setVisibleMonth(
                   (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
                 )
               }
+              whileTap={tap}
+              whileHover={{ scale: hoverScale }}
               className="rounded-full border border-gray-300 bg-white p-2 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
               aria-label="Next month"
             >
               <ChevronRight className="h-5 w-5" />
-            </button>
+            </motion.button>
           </div>
         </div>
 
@@ -491,10 +513,14 @@ export default function EmployeeCalendarPage() {
                 const dayHolidays = holidaysByDate[key] ?? [];
 
                 return (
-                  <button
+                  <motion.button
+                    type="button"
                     key={key}
                     onClick={() => openDateModal(date)}
-                    className={`appearance-none min-h-[132px] w-full border-b border-r border-gray-200 p-2 text-left hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-[#1e293b] ${
+                    whileTap={tap}
+                    whileHover={{ y: -3 }}
+                    transition={{ type: "spring", stiffness: 460, damping: 28 }}
+                    className={`appearance-none min-h-[132px] w-full border-b border-r border-gray-200 p-2 text-left transition-[box-shadow,background-color] duration-200 hover:bg-gray-100 hover:ring-2 hover:ring-blue-400/15 hover:shadow-md dark:border-gray-800 dark:hover:bg-[#1e293b] dark:hover:ring-blue-500/20 ${
                       isCurrentMonth
                         ? "bg-white text-gray-900 dark:bg-[#0b1220] dark:text-gray-100"
                         : "bg-gray-50 text-gray-500 dark:bg-[#1f2937] dark:text-gray-400"
@@ -553,7 +579,7 @@ export default function EmployeeCalendarPage() {
                         </div>
                       )}
                     </div>
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -561,9 +587,25 @@ export default function EmployeeCalendarPage() {
         </div>
       </div>
 
-      {showModal && selectedDate && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-5 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+      <AnimatePresence>
+        {showModal && selectedDate && (
+          <motion.div
+            key="calendar-modal"
+            className="fixed inset-0 z-30 flex items-center justify-center bg-black/45 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={closeModal}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 22, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 14, scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 360, damping: 32 }}
+              className="max-h-[min(90vh,44rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-xl dark:border-gray-700 dark:bg-gray-900"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -574,8 +616,9 @@ export default function EmployeeCalendarPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={closeModal}
-                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
+                className="rounded-lg p-1 text-gray-500 transition-transform duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-90 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white"
                 aria-label="Close"
               >
                 <X className="h-5 w-5" />
@@ -606,18 +649,18 @@ export default function EmployeeCalendarPage() {
                   <button
                     type="button"
                     onClick={() => setIncludeTime((prev) => !prev)}
-                    className="rounded-full border border-gray-300 px-2 py-0.5 text-[11px] text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                    className="rounded-full border border-gray-300 px-2 py-0.5 text-[11px] text-gray-700 transition-all duration-200 hover:bg-gray-100 active:scale-[0.96] dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
                   >
                     {includeTime ? "No time" : "Set time"}
                   </button>
                 </div>
                 {includeTime ? (
                   <>
-                    <div className="grid grid-cols-3 gap-1.5">
+                    <div className="animate-content-reveal grid grid-cols-3 gap-1.5">
                       <select
                         value={timeHour}
                         onChange={(e) => setTimeHour(e.target.value)}
-                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                        className="cursor-pointer rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 transition-colors duration-150 hover:border-blue-400/60 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                         style={{
                           backgroundColor: isDarkMode ? "#0f172a" : undefined,
                           color: isDarkMode ? "#f3f4f6" : undefined,
@@ -630,7 +673,7 @@ export default function EmployeeCalendarPage() {
                       <select
                         value={timeMinute}
                         onChange={(e) => setTimeMinute(e.target.value)}
-                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                        className="cursor-pointer rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 transition-colors duration-150 hover:border-blue-400/60 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                         style={{
                           backgroundColor: isDarkMode ? "#0f172a" : undefined,
                           color: isDarkMode ? "#f3f4f6" : undefined,
@@ -643,7 +686,7 @@ export default function EmployeeCalendarPage() {
                       <select
                         value={timePeriod}
                         onChange={(e) => setTimePeriod(e.target.value as "AM" | "PM")}
-                        className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                        className="cursor-pointer rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 transition-colors duration-150 hover:border-blue-400/60 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                         style={{
                           backgroundColor: isDarkMode ? "#0f172a" : undefined,
                           color: isDarkMode ? "#f3f4f6" : undefined,
@@ -654,10 +697,10 @@ export default function EmployeeCalendarPage() {
                       </select>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1">
-                      <button type="button" onClick={() => { setIncludeTime(true); setTimeHour("09"); setTimeMinute("00"); setTimePeriod("AM"); }} className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] text-blue-700 dark:bg-blue-900/40 dark:text-blue-200" style={{ color: isDarkMode ? "#e5e7eb" : undefined }}>9:00 AM</button>
-                      <button type="button" onClick={() => { setIncludeTime(true); setTimeHour("01"); setTimeMinute("00"); setTimePeriod("PM"); }} className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] text-blue-700 dark:bg-blue-900/40 dark:text-blue-200" style={{ color: isDarkMode ? "#e5e7eb" : undefined }}>1:00 PM</button>
-                      <button type="button" onClick={() => { setIncludeTime(true); setTimeHour("05"); setTimeMinute("00"); setTimePeriod("PM"); }} className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] text-blue-700 dark:bg-blue-900/40 dark:text-blue-200" style={{ color: isDarkMode ? "#e5e7eb" : undefined }}>5:00 PM</button>
-                      <button type="button" onClick={setNowAsReminderTime} className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200" style={{ color: isDarkMode ? "#e5e7eb" : undefined }}>Now</button>
+                      <button type="button" onClick={() => { setIncludeTime(true); setTimeHour("09"); setTimeMinute("00"); setTimePeriod("AM"); }} className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] text-blue-700 transition-transform duration-150 hover:bg-blue-200/80 active:scale-95 dark:bg-blue-900/40 dark:text-blue-200" style={{ color: isDarkMode ? "#e5e7eb" : undefined }}>9:00 AM</button>
+                      <button type="button" onClick={() => { setIncludeTime(true); setTimeHour("01"); setTimeMinute("00"); setTimePeriod("PM"); }} className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] text-blue-700 transition-transform duration-150 hover:bg-blue-200/80 active:scale-95 dark:bg-blue-900/40 dark:text-blue-200" style={{ color: isDarkMode ? "#e5e7eb" : undefined }}>1:00 PM</button>
+                      <button type="button" onClick={() => { setIncludeTime(true); setTimeHour("05"); setTimeMinute("00"); setTimePeriod("PM"); }} className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] text-blue-700 transition-transform duration-150 hover:bg-blue-200/80 active:scale-95 dark:bg-blue-900/40 dark:text-blue-200" style={{ color: isDarkMode ? "#e5e7eb" : undefined }}>5:00 PM</button>
+                      <button type="button" onClick={setNowAsReminderTime} className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700 transition-transform duration-150 hover:bg-emerald-200/80 active:scale-95 dark:bg-emerald-900/40 dark:text-emerald-200" style={{ color: isDarkMode ? "#e5e7eb" : undefined }}>Now</button>
                     </div>
                   </>
                 ) : (
@@ -676,46 +719,73 @@ export default function EmployeeCalendarPage() {
               className="mt-3 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
 
-            <div className="mt-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Share with users
-              </div>
-              <div className="max-h-28 space-y-2 overflow-y-auto pr-1">
-                {users
-                  .filter((u) => u.id !== currentUserId)
-                  .map((u) => (
-                    <label
-                      key={u.id}
-                      className="flex items-center justify-between rounded-md border border-gray-200 px-2 py-1.5 text-sm dark:border-gray-700"
-                    >
-                      <span className="truncate pr-2 text-gray-700 dark:text-gray-200">
-                        {u.name}
-                        {u.position ? ` (${u.position})` : ""}
-                      </span>
-                      <input
-                        type="checkbox"
-                        checked={shareUserIds.includes(u.id)}
-                        onChange={() => toggleShareUser(u.id)}
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    </label>
-                  ))}
-              </div>
-            </div>
-
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 rounded-md border border-gray-200 bg-gray-50/90 dark:border-gray-700 dark:bg-gray-950/70">
               <button
-                onClick={addReminder}
-                disabled={saving || !titleInput.trim()}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShareUsersOpen((open) => !open);
+                }}
+                aria-expanded={shareUsersOpen}
+                aria-controls="share-users-panel"
+                className="flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left text-sm transition-colors hover:bg-gray-100/90 active:bg-gray-200/50 dark:hover:bg-gray-800/70 dark:active:bg-gray-800"
               >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                Add reminder
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                    Share with users
+                  </span>
+                  {!shareUsersOpen && shareableUsers.length > 0 && (
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                      ({shareableUsers.length} people)
+                    </span>
+                  )}
+                  {shareUserIds.length > 0 && (
+                    <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+                      {shareUserIds.length} selected
+                    </span>
+                  )}
+                </div>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-gray-500 transition-transform duration-200 ease-out dark:text-gray-400 ${shareUsersOpen ? "rotate-180" : ""}`}
+                  aria-hidden
+                />
               </button>
+              {shareUsersOpen && (
+                <div
+                  id="share-users-panel"
+                  role="region"
+                  className="border-t border-gray-200/90 bg-gray-50/50 dark:border-gray-700 dark:bg-gray-950/50"
+                >
+                  <div className="flex max-h-44 flex-col gap-2.5 overflow-y-auto px-2.5 pb-2.5 pt-2">
+                    {shareableUsers.length === 0 ? (
+                      <p className="py-0.5 text-center text-[11px] leading-snug text-gray-500 dark:text-gray-400">
+                        No other users available to share with.
+                      </p>
+                    ) : (
+                      shareableUsers.map((u) => (
+                        <label
+                          key={u.id}
+                          className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-2.5 py-2.5 text-xs shadow-sm transition-colors hover:border-blue-300 hover:bg-blue-50/70 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:shadow-none dark:hover:border-blue-500/50 dark:hover:bg-gray-700/90"
+                        >
+                          <span className="min-w-0 truncate text-gray-900 dark:text-gray-100">
+                            {u.name}
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {u.position ? ` (${u.position})` : ""}
+                            </span>
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={shareUserIds.includes(u.id)}
+                            onChange={() => toggleShareUser(u.id)}
+                            className="h-4 w-4 shrink-0 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 dark:border-gray-500 dark:bg-gray-900 dark:text-blue-400 dark:ring-offset-gray-900"
+                          />
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-5">
@@ -728,12 +798,13 @@ export default function EmployeeCalendarPage() {
                 </p>
               ) : (
                 <ul className="max-h-56 space-y-2 overflow-y-auto pr-1">
-                  {selectedDateReminders.map((reminder) => {
+                  {selectedDateReminders.map((reminder, idx) => {
                     const isOwner = reminder.owner.id === currentUserId;
                     return (
                       <li
                         key={reminder.id}
-                        className="rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700"
+                        style={{ animationDelay: `${idx * 55}ms` }}
+                        className="animate-reminder-item rounded-lg border border-gray-200 px-3 py-2 transition-shadow duration-200 hover:shadow-md dark:border-gray-700"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -758,8 +829,9 @@ export default function EmployeeCalendarPage() {
                           </div>
                           {isOwner && (
                             <button
+                              type="button"
                               onClick={() => removeReminder(reminder.id)}
-                              className="rounded-md p-1 text-gray-500 hover:bg-red-50 hover:text-red-600 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                              className="rounded-md p-1 text-gray-500 transition-transform duration-150 hover:bg-red-50 hover:text-red-600 active:scale-90 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                               aria-label="Delete reminder"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -772,9 +844,39 @@ export default function EmployeeCalendarPage() {
                 </ul>
               )}
             </div>
-          </div>
-        </div>
-      )}
+
+            <div className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-600">
+              <button
+                type="button"
+                onClick={addReminder}
+                disabled={saving || !titleInput.trim()}
+                style={
+                  titleInput.trim()
+                    ? {
+                        backgroundColor: "#2563eb",
+                        color: "#ffffff",
+                        borderColor: "#1d4ed8",
+                      }
+                    : undefined
+                }
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-md transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-90 disabled:shadow-none ${
+                  titleInput.trim()
+                    ? ""
+                    : "border-gray-300 bg-gray-200 text-gray-600 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                }`}
+              >
+                {saving ? (
+                  <Loader2 className="h-5 w-5 shrink-0 animate-spin opacity-90" aria-hidden />
+                ) : (
+                  <Plus className="h-5 w-5 shrink-0 opacity-95" aria-hidden />
+                )}
+                Add reminder
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@/app/generated/prisma/client";
+import { TimeEntryEditRequestStatus } from "@/app/generated/prisma/enums";
 import { getUserIdFromRequest } from "@/lib/auth-request";
 import {
   endMinutesAfterStart,
@@ -165,6 +166,13 @@ export async function GET(req: NextRequest) {
       orderBy: {
         clockIn: "desc",
       },
+      include: {
+        editRequests: {
+          where: { status: TimeEntryEditRequestStatus.PENDING },
+          take: 1,
+          select: { id: true, status: true },
+        },
+      },
     });
 
     // 9-hour shift checker: total work time today excluding Lunch (in minutes)
@@ -172,9 +180,18 @@ export async function GET(req: NextRequest) {
       .filter((e) => e.kind !== "Lunch")
       .reduce((sum, e) => sum + (e.totalHours != null ? Number(e.totalHours) * 60 : 0), 0);
 
+    const entriesOut = entries.map((e) => {
+      const pending = e.editRequests[0];
+      const { editRequests: _, ...rest } = e;
+      return {
+        ...rest,
+        pendingEditRequest: pending ? { id: pending.id, status: pending.status } : null,
+      };
+    });
+
     return NextResponse.json(
       {
-        entries,
+        entries: entriesOut,
         totalWorkMinutesToday: Math.round(totalWorkMinutesToday * 100) / 100,
         schedule: schedulePayload(userRow?.scheduleStartMinutes ?? null),
       },

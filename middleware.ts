@@ -62,7 +62,7 @@ export const config = {
         "/positions/:path*",
         "/shifts/:path*",
         "/users/:path*",
-        "/requests/leave/:path*",
+        "/requests/:path*",
         "/employee-calendar/:path*",
         "/timekeeping",
         "/weekly-activity",

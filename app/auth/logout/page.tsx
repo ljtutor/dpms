@@ -29,7 +29,7 @@ export default function Logout() {
 
     return (
         <>
-            <button type="button" onClick={() => setLogoutModalOpen(true)} className="block px-4 py-2 w-full text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white" role="menuitem">Sign out</button>
+            <button type="button" onClick={() => setLogoutModalOpen(true)} className="block w-full px-4 py-2.5 text-left text-sm text-gray-700 transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200/80 dark:text-gray-200 dark:hover:bg-gray-600/80 dark:active:bg-gray-600" role="menuitem">Sign out</button>
             {logoutModalOpen && (
                 <>
                     <div className="fixed left-0 right-0 z-50 items-center justify-center overflow-x-hidden overflow-y-auto top-4 md:inset-0 h-modal sm:h-full flex" role="dialog">

@@ -6,6 +6,8 @@ import { AuthErrors } from "@/config/messages";
 
 import jwt from "jsonwebtoken";
 
+import { canApproveTimeLogEdits, canEditEmployeeSchedules } from "@/lib/schedule-editors";
+
 const prisma = new PrismaClient();
 
 export async function GET(req: Request) {
@@ -42,6 +44,8 @@ export async function GET(req: Request) {
                     position: user.position?.title ?? null,
                     role: user.role,
                     scheduleStartMinutes: user.scheduleStartMinutes,
+                    canEditEmployeeSchedules: canEditEmployeeSchedules(user.position?.title),
+                    canApproveTimeLogEdits: canApproveTimeLogEdits(user.position?.title),
                 },
             },
             { status: 200 }
