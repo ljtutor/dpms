@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarDays, Download } from "lucide-react";
+import { motion } from "motion/react";
+import { CalendarDays, ChevronDown, Download } from "lucide-react";
+
+import { useSpringHover, useSpringTap } from "@/lib/motion-presets";
 
 type ApiDay = {
   date: string;
@@ -55,19 +58,17 @@ export default function WeeklyActivityPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const tap = useSpringTap();
+  const hoverScale = useSpringHover();
 
   const fetchData = async (weekStartIso: string, userId: number | null) => {
     setLoading(true);
     setError(null);
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("token") ?? sessionStorage.getItem("token")
-          : null;
       const query = new URLSearchParams({ weekStart: weekStartIso });
       if (userId) query.set("userId", String(userId));
       const res = await fetch(`/api/weekly-activity?${query.toString()}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        credentials: "include",
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -109,16 +110,12 @@ export default function WeeklyActivityPage() {
 
   const handleExportExcel = async () => {
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("token") ?? sessionStorage.getItem("token")
-          : null;
       const query = new URLSearchParams({ weekStart, format: "xlsx" });
       if (selectedUserId) query.set("userId", String(selectedUserId));
       const res = await fetch(
         `/api/weekly-activity?${query.toString()}`,
         {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          credentials: "include",
         },
       );
       if (!res.ok) {
@@ -153,17 +150,17 @@ export default function WeeklyActivityPage() {
               View a summary of your timekeeping logs for the selected week.
             </p>
           </div>
-          <div className="flex flex-col items-start gap-2">
+          <div className="flex min-w-0 flex-1 flex-col items-stretch gap-2 sm:max-w-2xl sm:items-end">
             {data?.canViewOthers && (
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm dark:border-gray-600 dark:bg-gray-800">
+              <div className="inline-flex w-full items-center gap-2 rounded-2xl border border-gray-300 bg-white px-3 py-1.5 text-sm shadow-sm transition-shadow duration-200 focus-within:ring-2 focus-within:ring-blue-500/35 focus-within:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:focus-within:ring-offset-gray-900 sm:w-auto">
                 <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-300">
                   Employee
                 </span>
-                <div>
+                <div className="group relative min-w-0 flex-1">
                   <select
                     value={selectedUserId ?? ""}
                     onChange={(e) => setSelectedUserId(Number(e.target.value))}
-                    className="min-w-[260px] rounded-full border border-gray-200 bg-white py-1.5 pl-3 pr-9 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 [color-scheme:light] dark:[color-scheme:dark]"
+                    className="min-w-[260px] w-full cursor-pointer appearance-none rounded-full border border-gray-200 bg-white py-1.5 pl-3 pr-10 text-sm text-gray-900 transition-all duration-200 hover:border-blue-400/70 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:hover:border-blue-500/60 motion-reduce:active:scale-100 [color-scheme:light] dark:[color-scheme:dark]"
                   >
                     {data.users.map((u) => (
                       <option
@@ -175,47 +172,61 @@ export default function WeeklyActivityPage() {
                       </option>
                     ))}
                   </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 transition-transform duration-300 ease-out group-focus-within:rotate-180 dark:text-gray-400"
+                    aria-hidden
+                  />
                 </div>
               </div>
             )}
-            <div className="inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800">
-              <CalendarDays className="h-4 w-4 text-gray-500 dark:text-gray-300" />
-              <input
-                type="date"
-                value={weekStart}
-                onChange={(e) => setWeekStart(toMondayISO(e.target.value))}
-                className="border-0 bg-transparent text-sm text-gray-900 focus:outline-none dark:text-gray-100"
-              />
-            </div>
-            <div className="inline-flex rounded-full border border-gray-300 bg-white p-0.5 text-xs dark:border-gray-600 dark:bg-gray-800">
-              <button
+            <div className="mt-[5px] flex w-full min-w-0 flex-wrap items-center justify-between gap-3">
+              <div className="group inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm transition-shadow duration-200 focus-within:ring-2 focus-within:ring-blue-500/35 focus-within:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:focus-within:ring-offset-gray-900">
+                <CalendarDays className="h-4 w-4 shrink-0 text-gray-500 transition-transform duration-200 group-focus-within:scale-110 dark:text-gray-300" />
+                <input
+                  type="date"
+                  value={weekStart}
+                  onChange={(e) => setWeekStart(toMondayISO(e.target.value))}
+                  className="min-w-0 border-0 bg-transparent text-sm text-gray-900 focus:outline-none dark:text-gray-100"
+                />
+              </div>
+              <motion.button
                 type="button"
-                onClick={handlePrevWeek}
-                className="rounded-full px-3 py-1 text-gray-600 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                onClick={handleExportExcel}
+                whileTap={tap}
+                whileHover={{ scale: hoverScale }}
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900/0"
               >
-                Prev
-              </button>
-              <button
-                type="button"
-                onClick={handleNextWeek}
-                className="rounded-full px-3 py-1 text-gray-600 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-              >
-                Next
-              </button>
+                <Download className="h-4 w-4" />
+                Export Excel
+              </motion.button>
             </div>
-            <button
-              type="button"
-              onClick={handleExportExcel}
-              className="inline-flex items-center gap-2 rounded-full bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900/0"
-            >
-              <Download className="h-4 w-4" />
-              Export Excel
-            </button>
+            {!(data && !loading) && (
+              <div className="flex w-full justify-end">
+                <div className="inline-flex rounded-full border border-gray-300 bg-white p-0.5 text-xs dark:border-gray-600 dark:bg-gray-800">
+                  <motion.button
+                    type="button"
+                    onClick={handlePrevWeek}
+                    whileTap={tap}
+                    className="rounded-full px-3 py-1 text-gray-600 transition-colors duration-150 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    Prev
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    onClick={handleNextWeek}
+                    whileTap={tap}
+                    className="rounded-full px-3 py-1 text-gray-600 transition-colors duration-150 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                  >
+                    Next
+                  </motion.button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {loading && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="animate-pulse text-sm text-gray-500 dark:text-gray-400">
             Loading weekly activity…
           </p>
         )}
@@ -224,7 +235,13 @@ export default function WeeklyActivityPage() {
         )}
 
         {data && !loading && (
-          <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <motion.div
+            key={`${data.weekStart}-${data.selectedUserId}`}
+            initial={{ opacity: 0, y: 14, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 340, damping: 30 }}
+            className="mt-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+          >
             <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-gray-700 dark:text-gray-200">
                 Week of{" "}
@@ -265,7 +282,18 @@ export default function WeeklyActivityPage() {
                       ...data.days.map((d) => d.entries.length),
                     );
                     return Array.from({ length: maxRows || 1 }).map((_, rowIdx) => (
-                      <tr key={rowIdx} className="align-top">
+                      <motion.tr
+                        key={rowIdx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 30,
+                          delay: rowIdx * 0.045,
+                        }}
+                        className="align-top"
+                      >
                         {data.days.map((day) => {
                           const entry = day.entries[rowIdx];
                           if (!entry) {
@@ -308,16 +336,38 @@ export default function WeeklyActivityPage() {
                             </td>
                           );
                         })}
-                      </tr>
+                      </motion.tr>
                     ));
                   })()}
                 </tbody>
               </table>
             </div>
-          </div>
+
+            <div className="mt-4 flex justify-end border-t border-gray-200 pt-4 dark:border-gray-700">
+              <div className="inline-flex rounded-full border border-gray-300 bg-white p-0.5 text-xs shadow-sm dark:border-gray-600 dark:bg-gray-900/80">
+                <motion.button
+                  type="button"
+                  onClick={handlePrevWeek}
+                  whileTap={tap}
+                  className="rounded-full px-3 py-1.5 text-gray-600 transition-colors duration-150 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  Prev
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={handleNextWeek}
+                  whileTap={tap}
+                  className="rounded-full px-3 py-1.5 text-gray-600 transition-colors duration-150 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  Next
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
         )}
       </div>
     </section>
   );
 }
+
 

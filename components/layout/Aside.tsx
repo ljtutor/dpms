@@ -4,10 +4,13 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 
 import Link from "next/link";
+import { motion } from "motion/react";
 
 import { Role } from "@/app/generated/prisma/enums";
 
-import { Briefcase, Calendar, ClipboardList, ChevronDown, Clock, Globe, History, Settings, Users } from "lucide-react";
+import { Briefcase, Calendar, CalendarDays, ClipboardList, ChevronDown, Clock, Globe, History, Settings, Users } from "lucide-react";
+
+import { useSpringTap } from "@/lib/motion-presets";
 
 export default function Aside({
     sidebarOpen,
@@ -19,6 +22,7 @@ export default function Aside({
     const pathname = usePathname() ?? "";
 
     const [openRequests, setOpenRequests] = useState(() => pathname.startsWith("/requests"));
+    const tap = useSpringTap();
 
     const navBase = "flex items-center p-2 text-base text-gray-900 rounded-lg hover:bg-gray-100 group dark:text-gray-200 dark:hover:bg-gray-700";
     const activeClass = "bg-gray-100 dark:bg-gray-700";
@@ -45,21 +49,65 @@ export default function Aside({
                                     </Link>
                                 </li>
                                 <li>
-                                    <button onClick={() => setOpenRequests(!openRequests)} className="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
-                                        <ClipboardList className="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></ClipboardList>
-                                        <span className="flex-1 ml-3 text-left whitespace-nowrap">Requests</span>
-                                        <ChevronDown className={`w-6 h-6 ${openRequests ? "rotate-180" : ""}`}></ChevronDown>
-                                    </button>
-                                    {openRequests && (
-                                        <ul className="space-y-2 py-2">
-                                            <li>
-                                                <Link href="/requests/leave" className={`text-base text-gray-900 rounded-lg flex items-center p-2 group hover:bg-gray-100 transition duration-75 pl-11 dark:text-gray-200 dark:hover:bg-gray-700 ${pathname === "/requests/leave" ? activeClass : ""}`}>Leave</Link>
-                                            </li>
-                                            <li>
-                                                <Link href="/requests/reimbursement" className={`text-base text-gray-900 rounded-lg flex items-center p-2 group hover:bg-gray-100 transition duration-75 pl-11 dark:text-gray-200 dark:hover:bg-gray-700 ${pathname === "/requests/reimbursement" ? activeClass : ""}`}>Reimbursement</Link>
-                                            </li>
-                                        </ul>
-                                    )}
+                                    <Link href="/employee-calendar" className={linkClass("/employee-calendar")}>
+                                        <CalendarDays className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></CalendarDays>
+                                        <span className="ml-3" sidebar-toggle-item="">Employee Calendar</span>
+                                    </Link>
+                                </li>
+                                <li>
+                                    <motion.button
+                                        type="button"
+                                        onClick={() => setOpenRequests(!openRequests)}
+                                        aria-expanded={openRequests}
+                                        whileTap={tap}
+                                        className="group flex w-full items-center rounded-lg p-2 text-base text-gray-900 transition-colors duration-200 hover:bg-gray-100 active:bg-gray-200/70 dark:text-gray-200 dark:hover:bg-gray-700 dark:active:bg-gray-600/80"
+                                    >
+                                        <ClipboardList className="h-6 w-6 shrink-0 text-gray-500 transition-colors duration-200 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white" />
+                                        <span className="ml-3 flex-1 text-left whitespace-nowrap">Requests</span>
+                                        <motion.span
+                                            animate={{ rotate: openRequests ? 180 : 0 }}
+                                            transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                                            className="inline-flex"
+                                        >
+                                            <ChevronDown
+                                                className="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400"
+                                                aria-hidden
+                                            />
+                                        </motion.span>
+                                    </motion.button>
+                                    <div
+                                        className="dpms-requests-collapse motion-reduce:transition-none"
+                                        data-open={openRequests ? "true" : "false"}
+                                    >
+                                        <div className="dpms-requests-collapse-inner">
+                                            <ul className="space-y-1 py-2 pl-2">
+                                                <li>
+                                                    <Link
+                                                        href="/requests/leave"
+                                                        className={`flex items-center rounded-lg py-2 pl-9 pr-2 text-base text-gray-900 transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200/50 dark:text-gray-200 dark:hover:bg-gray-700 dark:active:bg-gray-600/50 ${pathname === "/requests/leave" ? activeClass : ""}`}
+                                                    >
+                                                        Leave
+                                                    </Link>
+                                                </li>
+                                                <li>
+                                                    <Link
+                                                        href="/requests/reimbursement"
+                                                        className={`flex items-center rounded-lg py-2 pl-9 pr-2 text-base text-gray-900 transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200/50 dark:text-gray-200 dark:hover:bg-gray-700 dark:active:bg-gray-600/50 ${pathname === "/requests/reimbursement" ? activeClass : ""}`}
+                                                    >
+                                                        Reimbursement
+                                                    </Link>
+                                                </li>
+                                                <li>
+                                                    <Link
+                                                        href="/requests/time-log-edits"
+                                                        className={`flex items-center rounded-lg py-2 pl-9 pr-2 text-base text-gray-900 transition-colors duration-150 hover:bg-gray-100 active:bg-gray-200/50 dark:text-gray-200 dark:hover:bg-gray-700 dark:active:bg-gray-600/50 ${pathname === "/requests/time-log-edits" ? activeClass : ""}`}
+                                                    >
+                                                        Time log edits
+                                                    </Link>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </li>
                             </ul>
                             {user?.role === Role.ADMIN && (

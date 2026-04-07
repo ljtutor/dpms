@@ -1,3 +1,225 @@
 body {
     overflow-y: scroll;
 }
+
+/*
+ * Sidebar — Requests accordion (legacy app.css has no grid-rows-[0fr] / 1fr utilities).
+ * data-open="true" | "false" toggled from React.
+ */
+.dpms-requests-collapse {
+    display: grid;
+    overflow: hidden;
+    transition: grid-template-rows 0.28s ease-out;
+}
+
+.dpms-requests-collapse[data-open="true"] {
+    grid-template-rows: 1fr;
+}
+
+.dpms-requests-collapse[data-open="false"] {
+    grid-template-rows: 0fr;
+}
+
+.dpms-requests-collapse-inner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+/*
+ * Edit Schedule (Timekeeping): legacy /public/css/app.css is a fixed Tailwind v3 bundle
+ * and does not include many utilities used in App Router pages (e.g. bg-blue-600, rounded-xl).
+ * Preflight sets button { background-color: transparent }, so those missing utilities left
+ * white text on an invisible background. These rules apply regardless of Tailwind scanning.
+ */
+button.dpms-btn-edit-schedule {
+    -webkit-appearance: none;
+    appearance: none;
+    align-items: center;
+    background-color: #2563eb;
+    border: 2px solid #1d4ed8;
+    border-radius: 0.75rem;
+    box-shadow:
+        0 4px 6px -1px rgba(15, 23, 42, 0.12),
+        0 2px 4px -2px rgba(15, 23, 42, 0.08);
+    color: #fff !important;
+    cursor: pointer;
+    display: inline-flex;
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    gap: 0.5rem;
+    justify-content: center;
+    line-height: 1.25rem;
+    padding: 0.625rem 1rem;
+}
+
+button.dpms-btn-edit-schedule:hover {
+    background-color: #1d4ed8;
+    border-color: #1e40af;
+}
+
+button.dpms-btn-edit-schedule:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+button.dpms-btn-edit-schedule svg {
+    color: #fff;
+    flex-shrink: 0;
+    height: 1rem;
+    width: 1rem;
+}
+
+.dark button.dpms-btn-edit-schedule {
+    background-color: #2563eb;
+    border-color: #60a5fa;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.35);
+}
+
+.dark button.dpms-btn-edit-schedule:hover {
+    background-color: #3b82f6;
+    border-color: #93c5fd;
+}
+
+/* Edit Schedule dialog panel — thick border so it reads clearly on light/dark pages */
+.dpms-modal-edit-schedule {
+    background-color: #fff;
+    border: 3px solid #64748b;
+    border-radius: 1rem;
+    box-shadow:
+        0 25px 50px -12px rgba(15, 23, 42, 0.28),
+        0 0 0 1px rgba(15, 23, 42, 0.06);
+    box-sizing: border-box;
+    max-width: 28rem;
+    padding: 1.5rem;
+    width: 100%;
+}
+
+.dark .dpms-modal-edit-schedule {
+    background-color: #1f2937;
+    border-color: #94a3b8;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Request log edit — Submit request (legacy app.css omits Tailwind; use explicit light blue) */
+button.dpms-btn-submit-request {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #bae6fd;
+    border: 2px solid #7dd3fc;
+    border-radius: 0.75rem;
+    color: #0c4a6e !important;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+button.dpms-btn-submit-request:hover:not(:disabled) {
+    background-color: #7dd3fc;
+    border-color: #38bdf8;
+}
+
+button.dpms-btn-submit-request:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+}
+
+button.dpms-btn-submit-request:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.dark button.dpms-btn-submit-request {
+    background-color: #0ea5e9;
+    border-color: #38bdf8;
+    color: #f0f9ff !important;
+}
+
+.dark button.dpms-btn-submit-request:hover:not(:disabled) {
+    background-color: #38bdf8;
+    border-color: #7dd3fc;
+}
+
+/* Time log edits — Reject (legacy CSS omits dark: text colors) */
+button.dpms-btn-reject {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: #fff;
+    border: 2px solid #fca5a5;
+    border-radius: 0.5rem;
+    color: #b91c1c !important;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.375rem 0.75rem;
+}
+
+button.dpms-btn-reject:hover:not(:disabled) {
+    background-color: #fef2f2;
+}
+
+button.dpms-btn-reject:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.dark button.dpms-btn-reject {
+    background-color: #450a0a;
+    border-color: #f87171;
+    color: #fecaca !important;
+}
+
+.dark button.dpms-btn-reject:hover:not(:disabled) {
+    background-color: #7f1d1d;
+}
+
+/* Time log edits — status chips (PENDING / APPROVED / REJECTED) */
+span.dpms-status-pending {
+    background-color: #e0f2fe;
+    border-radius: 9999px;
+    color: #0c4a6e !important;
+    display: inline-flex;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+}
+
+.dark span.dpms-status-pending {
+    background-color: #0c4a6e;
+    color: #e0f2fe !important;
+}
+
+span.dpms-status-approved {
+    background-color: #dcfce7;
+    border-radius: 9999px;
+    color: #14532d !important;
+    display: inline-flex;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+}
+
+.dark span.dpms-status-approved {
+    background-color: #14532d;
+    color: #bbf7d0 !important;
+}
+
+span.dpms-status-rejected {
+    background-color: #ffedd5;
+    border-radius: 9999px;
+    color: #7c2d12 !important;
+    display: inline-flex;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+}
+
+.dark span.dpms-status-rejected {
+    background-color: #7c2d12;
+    color: #fed7aa !important;
+}
