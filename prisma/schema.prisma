@@ -1,17 +1,14 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
-  output = "../app/generated/prisma"
+  output   = "../app/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -82,14 +79,14 @@ model TimeEntry {
   user         Users     @relation(fields: [userId], references: [id])
 
   clockIn      DateTime
-  clockOut     DateTime?      // nullable while still on shift
+  clockOut     DateTime?
   breakMinutes Int      @default(0)
   totalHours   Decimal?
-  status       String
-  notes        String?
+
+
   taskDescription String?
   kind         String
-  isLate       Boolean?       // true if first Time In of day was after 8:00 AM GMT+8
+  isLate       Boolean?
 
   editRequests TimeEntryEditRequest[]
 

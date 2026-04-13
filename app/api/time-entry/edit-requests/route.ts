@@ -3,8 +3,6 @@ import { PrismaClient } from "@/app/generated/prisma/client";
 import { TimeEntryEditRequestStatus } from "@/app/generated/prisma/enums";
 import { getUserIdFromRequest } from "@/lib/auth-request";
 import { canApproveTimeLogEdits } from "@/lib/schedule-editors";
-import { sameLocalCalendarDay } from "@/lib/time-entry-day";
-
 const prisma = new PrismaClient();
 
 const LOG_KINDS = new Set(["Time In", "Task", "Break", "Lunch", "Time Out"]);
@@ -154,13 +152,6 @@ export async function POST(req: NextRequest) {
     });
     if (!entry) {
       return NextResponse.json({ error: "Time entry not found" }, { status: 404 });
-    }
-
-    if (!sameLocalCalendarDay(entry.clockIn, proposedClockIn)) {
-      return NextResponse.json(
-        { error: "Edited time must stay on the same calendar day as the original log." },
-        { status: 400 },
-      );
     }
 
     const existing = await prisma.timeEntryEditRequest.findFirst({

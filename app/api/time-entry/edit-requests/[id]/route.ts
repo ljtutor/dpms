@@ -3,7 +3,7 @@ import { PrismaClient } from "@/app/generated/prisma/client";
 import { TimeEntryEditRequestStatus } from "@/app/generated/prisma/enums";
 import { getUserIdFromRequest } from "@/lib/auth-request";
 import { canApproveTimeLogEdits } from "@/lib/schedule-editors";
-import { recalculateDayTimeEntries } from "@/lib/time-entry-day";
+import { recalculateDayTimeEntries, sameLocalCalendarDay } from "@/lib/time-entry-day";
 
 const prisma = new PrismaClient();
 
@@ -94,7 +94,14 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       });
     });
 
-    await recalculateDayTimeEntries(prisma, editReq.timeEntry.userId, editReq.proposedClockIn);
+    const userId = editReq.timeEntry.userId;
+    const oldClockIn = editReq.timeEntry.clockIn;
+    const newClockIn = editReq.proposedClockIn;
+
+    await recalculateDayTimeEntries(prisma, userId, newClockIn);
+    if (!sameLocalCalendarDay(oldClockIn, newClockIn)) {
+      await recalculateDayTimeEntries(prisma, userId, oldClockIn);
+    }
 
     return NextResponse.json({ ok: true, status: TimeEntryEditRequestStatus.APPROVED });
   } catch (error) {

@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     });
     const scheduleStartM = getScheduleStartMinutes(userRow?.scheduleStartMinutes ?? null);
 
-    // Update the previous entry's totalHours (duration until this new log)
+    // Update the previous entry's duration fields (duration until this new log)
     const previousEntry = await prisma.timeEntry.findFirst({
       where: { userId },
       orderBy: { clockIn: "desc" },
@@ -64,9 +64,11 @@ export async function POST(req: NextRequest) {
       const diffMs = clockIn.getTime() - previousEntry.clockIn.getTime();
       if (diffMs > 0) {
         const totalHours = diffMs / 1000 / 60 / 60;
+        const isBreakLike = previousEntry.kind === "Break" || previousEntry.kind === "Lunch";
+        const breakMinutes = isBreakLike ? Math.floor(diffMs / 1000 / 60) : previousEntry.breakMinutes;
         await prisma.timeEntry.update({
           where: { id: previousEntry.id },
-          data: { totalHours },
+          data: { totalHours, breakMinutes },
         });
       }
     }
@@ -105,8 +107,6 @@ export async function POST(req: NextRequest) {
       clockOut,
       breakMinutes: 0,
       totalHours,
-      status: "RECORDED" as const,
-      notes: null,
       taskDescription: type === "Task" ? (typeof taskDescription === "string" ? taskDescription.trim() : null) : null,
       kind: type,
     };

@@ -36,15 +36,18 @@ export async function recalculateDayTimeEntries(prisma: PrismaClient, userId: nu
     const e = entries[i];
     const next = entries[i + 1];
     let totalHours: number | null = null;
+    let breakMinutes = e.breakMinutes;
     if (next) {
       const diffMs = next.clockIn.getTime() - e.clockIn.getTime();
       totalHours = diffMs > 0 ? diffMs / 1000 / 60 / 60 : 0;
+      const isBreakLike = e.kind === "Break" || e.kind === "Lunch";
+      breakMinutes = isBreakLike ? Math.max(0, Math.floor(diffMs / 1000 / 60)) : e.breakMinutes;
     } else {
       totalHours = e.kind === "Time Out" ? 0 : null;
     }
     await prisma.timeEntry.update({
       where: { id: e.id },
-      data: { totalHours },
+      data: { totalHours, breakMinutes },
     });
   }
 
