@@ -1024,9 +1024,9 @@ export default function TimekeepingPage() {
                 Request log edit
               </h2>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Proposed changes stay on <span className="font-medium">the same calendar day</span> as this log. A Team
-                Lead, Finance Officer, Business Development Manager, or Project Manager must approve before the log
-                updates.
+                You can change the <span className="font-medium">date and time</span> (for example, moving a late Time Out
+                back to the correct day). A Team Lead, Finance Officer, Business Development Manager, or Project Manager
+                must approve before the log updates.
               </p>
 
               <div className="mt-4">

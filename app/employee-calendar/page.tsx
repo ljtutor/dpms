@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Pencil,
   Plus,
   Trash2,
   X,
@@ -53,6 +54,33 @@ function toDateKey(date: Date) {
 
 function toDateKeyFromIso(iso: string) {
   return toDateKey(new Date(iso));
+}
+
+function dateFromReminderIso(iso: string): Date {
+  const key = toDateKeyFromIso(iso);
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function parseReminderTimeString(s: string | null): {
+  include: boolean;
+  hour: string;
+  minute: string;
+  period: "AM" | "PM";
+} {
+  if (!s || !s.trim()) {
+    return { include: false, hour: "09", minute: "00", period: "AM" };
+  }
+  const match = /^(\d{2}):(\d{2})\s*(AM|PM)$/i.exec(s.trim());
+  if (!match) {
+    return { include: true, hour: "09", minute: "00", period: "AM" };
+  }
+  return {
+    include: true,
+    hour: match[1],
+    minute: match[2],
+    period: match[3].toUpperCase() === "PM" ? "PM" : "AM",
+  };
 }
 
 function formatLongDate(date: Date) {
@@ -146,6 +174,11 @@ export default function EmployeeCalendarPage() {
   const [noteInput, setNoteInput] = useState("");
   const [shareUserIds, setShareUserIds] = useState<number[]>([]);
   const [shareUsersOpen, setShareUsersOpen] = useState(false);
+  const [editingReminderId, setEditingReminderId] = useState<number | null>(null);
+  const [reminderFormDate, setReminderFormDate] = useState(() => {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  });
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -303,7 +336,10 @@ export default function EmployeeCalendarPage() {
   }, [visibleMonth, sessionReady]);
 
   const openDateModal = (date: Date) => {
-    setSelectedDate(new Date(date.getFullYear(), date.getMonth(), date.getDate()));
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    setSelectedDate(day);
+    setReminderFormDate(day);
+    setEditingReminderId(null);
     setShowModal(true);
     setTitleInput("");
     setTimeInput("");
@@ -318,33 +354,75 @@ export default function EmployeeCalendarPage() {
 
   const closeModal = () => {
     setShowModal(false);
+    setEditingReminderId(null);
   };
 
-  const addReminder = async () => {
-    if (!selectedDate || !sessionReady) return;
+  const beginEditReminder = (reminder: CalendarReminder) => {
+    const t = parseReminderTimeString(reminder.time);
+    setEditingReminderId(reminder.id);
+    setTitleInput(reminder.title);
+    setNoteInput(reminder.note ?? "");
+    setShareUserIds(reminder.sharedWith.map((u) => u.id));
+    setIncludeTime(t.include);
+    setTimeHour(t.hour);
+    setTimeMinute(t.minute);
+    setTimePeriod(t.period);
+    const rd = dateFromReminderIso(reminder.date);
+    setSelectedDate(rd);
+    setReminderFormDate(rd);
+    setShareUsersOpen(false);
+    setError(null);
+  };
+
+  const cancelEditReminder = () => {
+    setEditingReminderId(null);
+    setTitleInput("");
+    setTimeInput("");
+    setIncludeTime(false);
+    setTimeHour("09");
+    setTimeMinute("00");
+    setTimePeriod("AM");
+    setNoteInput("");
+    setShareUserIds([]);
+  };
+
+  const saveReminder = async () => {
+    if (!sessionReady) return;
     const trimmedTitle = titleInput.trim();
     if (!trimmedTitle) return;
 
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/employee-calendar", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          date: selectedDate.toISOString(),
-          title: trimmedTitle,
-          time: timeInput || null,
-          note: noteInput || null,
-          shareUserIds,
-        }),
-      });
+      const payload = {
+        date: reminderFormDate.toISOString(),
+        title: trimmedTitle,
+        time: timeInput || null,
+        note: noteInput || null,
+        shareUserIds,
+      };
+
+      const res =
+        editingReminderId != null
+          ? await fetch(`/api/employee-calendar/${editingReminderId}`, {
+              method: "PATCH",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            })
+          : await fetch("/api/employee-calendar", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "Failed to create reminder");
+        throw new Error(
+          body.error ??
+            (editingReminderId != null ? "Failed to update reminder" : "Failed to create reminder"),
+        );
       }
 
       await fetchCalendar();
@@ -352,9 +430,14 @@ export default function EmployeeCalendarPage() {
       setTimeInput("");
       setNoteInput("");
       setShareUserIds([]);
+      setEditingReminderId(null);
+      setIncludeTime(false);
+      setTimeHour("09");
+      setTimeMinute("00");
+      setTimePeriod("AM");
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Failed to create reminder";
+        err instanceof Error ? err.message : "Failed to save reminder";
       setError(message);
     } finally {
       setSaving(false);
@@ -609,7 +692,7 @@ export default function EmployeeCalendarPage() {
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Add Reminder
+                  {editingReminderId != null ? "Edit reminder" : "Add reminder"}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {formatLongDate(selectedDate)}
@@ -630,6 +713,29 @@ export default function EmployeeCalendarPage() {
                 Holiday: {selectedDateHolidays.join(", ")}
               </div>
             )}
+
+            <div className="mb-3">
+              <label
+                htmlFor="reminder-form-date"
+                className="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"
+              >
+                Date
+              </label>
+              <input
+                id="reminder-form-date"
+                type="date"
+                value={toLocalIsoDate(reminderFormDate)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) return;
+                  const [y, mon, d] = v.split("-").map(Number);
+                  const next = new Date(y, mon - 1, d);
+                  setReminderFormDate(next);
+                  setSelectedDate(next);
+                }}
+                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              />
+            </div>
 
             <div className="grid gap-3 sm:grid-cols-[1fr_240px]">
               <input
@@ -828,14 +934,30 @@ export default function EmployeeCalendarPage() {
                             )}
                           </div>
                           {isOwner && (
-                            <button
-                              type="button"
-                              onClick={() => removeReminder(reminder.id)}
-                              className="rounded-md p-1 text-gray-500 transition-transform duration-150 hover:bg-red-50 hover:text-red-600 active:scale-90 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
-                              aria-label="Delete reminder"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            <div className="flex shrink-0 items-center gap-0.5">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  beginEditReminder(reminder);
+                                }}
+                                className="rounded-md p-1 text-gray-500 transition-transform duration-150 hover:bg-blue-50 hover:text-blue-600 active:scale-90 dark:text-gray-300 dark:hover:bg-blue-900/30 dark:hover:text-blue-400"
+                                aria-label="Edit reminder"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeReminder(reminder.id);
+                                }}
+                                className="rounded-md p-1 text-gray-500 transition-transform duration-150 hover:bg-red-50 hover:text-red-600 active:scale-90 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                aria-label="Delete reminder"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </li>
@@ -845,10 +967,19 @@ export default function EmployeeCalendarPage() {
               )}
             </div>
 
-            <div className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-600">
+            <div className="mt-6 space-y-2 border-t border-gray-200 pt-4 dark:border-gray-600">
+              {editingReminderId != null && (
+                <button
+                  type="button"
+                  onClick={cancelEditReminder}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                >
+                  Cancel editing
+                </button>
+              )}
               <button
                 type="button"
-                onClick={addReminder}
+                onClick={saveReminder}
                 disabled={saving || !titleInput.trim()}
                 style={
                   titleInput.trim()
@@ -867,10 +998,12 @@ export default function EmployeeCalendarPage() {
               >
                 {saving ? (
                   <Loader2 className="h-5 w-5 shrink-0 animate-spin opacity-90" aria-hidden />
+                ) : editingReminderId != null ? (
+                  <Pencil className="h-5 w-5 shrink-0 opacity-95" aria-hidden />
                 ) : (
                   <Plus className="h-5 w-5 shrink-0 opacity-95" aria-hidden />
                 )}
-                Add reminder
+                {editingReminderId != null ? "Save changes" : "Add reminder"}
               </button>
             </div>
           </motion.div>
