@@ -67,6 +67,11 @@ export const config = {
         "/requests/leave/:path*",
         "/shifts/:path*",
         "/users/:path*",
+        "/requests/:path*",
+        "/employee-calendar/:path*",
+        "/timekeeping",
+        "/weekly-activity",
+        "/auth/change-password",
     ],
     runtime: "nodejs",
 };

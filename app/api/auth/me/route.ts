@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { AuthErrors } from "@/config/messages";
 import prisma from "@/lib/prisma";
+import { canApproveTimeLogEdits, canEditEmployeeSchedules } from "@/lib/schedule-editors";
 
 export async function GET(req: Request) {
     try {
@@ -43,9 +44,9 @@ export async function GET(req: Request) {
                     lastName: employeeInformation?.lastName ?? null,
                     position: user.companyInformation?.position?.title ?? null,
                     role: user.role,
-                    scheduleStartMinutes: user.scheduleStartMinutes,
-                    canEditEmployeeSchedules: canEditEmployeeSchedules(user.position?.title),
-                    canApproveTimeLogEdits: canApproveTimeLogEdits(user.position?.title),
+                    scheduleStartMinutes: user.employeeInformation?.scheduleStartMinutes ?? null,
+                    canEditEmployeeSchedules: canEditEmployeeSchedules(user.companyInformation?.position?.title),
+                    canApproveTimeLogEdits: canApproveTimeLogEdits(user.companyInformation?.position?.title),
                 },
             },
             { status: 200 }
