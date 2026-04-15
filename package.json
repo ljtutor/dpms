@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -14,8 +15,14 @@
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
+    "exceljs": "^4.4.0",
+    "framer-motion": "^12.38.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.577.0",
+<<<<<<< HEAD
+=======
+    "motion": "^12.38.0",
+>>>>>>> main
     "next": "^16.2.3",
     "prisma": "^6.19.3",
     "react": "19.2.3",

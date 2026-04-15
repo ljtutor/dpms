@@ -1,17 +1,14 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
-  output = "../app/generated/prisma"
+  output   = "../app/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -35,138 +32,210 @@ enum NotificationType {
   DECLINE
 }
 
+enum TimeEntryEditRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model CompanyInformation {
-  id Int @id @default(autoincrement())
+  id         Int        @id @default(autoincrement())
   positionId Int?
-  position Positions? @relation(fields: [positionId], references: [id])
+  position   Positions? @relation(fields: [positionId], references: [id])
 
-  userId Int @unique
-  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int   @unique
+  user   Users @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model Departments {
-  id Int @id @default(autoincrement())
+  id   Int    @id @default(autoincrement())
   name String @unique
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model EmployeeInformation {
-  id Int @id @default(autoincrement())
-  firstName String
+  id         Int       @id @default(autoincrement())
+  firstName  String
   middleName String?
-  lastName String
-  birthday DateTime?
-  
-  userId Int @unique
-  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt DateTime @default(now())
+  lastName   String
+  birthday   DateTime?
+
+  /// Minutes from midnight (GMT+8) when the workday starts
+  scheduleStartMinutes Int?
+
+  userId Int   @unique
+  user   Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model Leaves {
-  id Int @id @default(autoincrement())
-  type String @unique
+  id                 Int             @id @default(autoincrement())
+  type               String          @unique
   accrualRateManager Float?
-  accrualRateUser Float?
-  accrualPeriod Period?
-  leaveRequests LeaveRequests[]
+  accrualRateUser    Float?
+  accrualPeriod      Period?
+  leaveRequests      LeaveRequests[]
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model LeaveRequests {
-  id Int @id @default(autoincrement())
-  userId Int
-  user Users @relation("LeaveRequestUser", fields: [userId], references: [id], onDelete: Cascade)
-  dateFiled DateTime
-  leaveTypeId Int
-  leaveType Leaves @relation(fields: [leaveTypeId], references: [id])
-  dateFrom DateTime
-  dateTo DateTime
-  noOfDays Int
-  reason String?
-  eSignature Bytes? @db.ByteA
-  approvedBy Users[] @relation("LeaveRequestApprover")
-  isApproved Boolean @default(false)
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         Users     @relation("LeaveRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  dateFiled    DateTime
+  leaveTypeId  Int
+  leaveType    Leaves    @relation(fields: [leaveTypeId], references: [id])
+  dateFrom     DateTime
+  dateTo       DateTime
+  noOfDays     Int
+  reason       String?
+  eSignature   Bytes?    @db.ByteA
+  approvedBy   Users[]   @relation("LeaveRequestApprover")
+  isApproved   Boolean   @default(false)
   dateApproved DateTime?
-  receivedBy Int
-  receiver Users @relation("LeaveRequestReceiver", fields: [receivedBy], references: [id])
-  isAccepted Boolean @default(false)
+  receivedBy   Int
+  receiver     Users     @relation("LeaveRequestReceiver", fields: [receivedBy], references: [id])
+  isAccepted   Boolean   @default(false)
   dateAccepted DateTime?
 
   notifications Notifications[]
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model Notifications {
-  id Int @id @default(autoincrement())
-  type NotificationType
-  fromId Int
-  fromUser Users @relation("NotificationFrom", fields: [fromId], references: [id], onDelete: Cascade)
-  toUsers Users[] @relation("NotificationTo")
-  ccUsers Users[] @relation("NotificationCc")
+  id             Int              @id @default(autoincrement())
+  type           NotificationType
+  fromId         Int
+  fromUser       Users            @relation("NotificationFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toUsers        Users[]          @relation("NotificationTo")
+  ccUsers        Users[]          @relation("NotificationCc")
   leaveRequestId Int?
-  leaveRequest LeaveRequests? @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
-  isRead Boolean @default(false)
+  leaveRequest   LeaveRequests?   @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  isRead         Boolean          @default(false)
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model Positions {
-  id Int @id @default(autoincrement())
+  id    Int    @id @default(autoincrement())
   title String @unique
 
   companyInformation CompanyInformation[]
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model Users {
-  id Int @id @default(autoincrement())
-  email String @unique
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
   password String
-  role Role @default(USER)
+  role     Role    @default(USER)
   isActive Boolean @default(true)
 
   employeeInformation EmployeeInformation?
-  companyInformation CompanyInformation?
+  companyInformation  CompanyInformation?
+
   timeEntries TimeEntry[]
-  leaveRequests LeaveRequests[] @relation("LeaveRequestUser")
+
+  timeEntryEditRequestsRequested TimeEntryEditRequest[] @relation("TimeEntryEditRequester")
+  timeEntryEditRequestsReviewed  TimeEntryEditRequest[] @relation("TimeEntryEditReviewer")
+  calendarReminders              CalendarReminder[]     @relation("CalendarReminderOwner")
+  reminderShares                 ReminderShare[]
+
+  leaveRequests        LeaveRequests[] @relation("LeaveRequestUser")
   leaveRequestApprover LeaveRequests[] @relation("LeaveRequestApprover")
   leaveRequestReceiver LeaveRequests[] @relation("LeaveRequestReceiver")
-  notificationsFrom Notifications[] @relation("NotificationFrom")
-  notificationsTo Notifications[] @relation("NotificationTo")
-  notificationsCc Notifications[] @relation("NotificationCc")
 
-  createdAt DateTime @default(now())
+  notificationsFrom Notifications[] @relation("NotificationFrom")
+  notificationsTo   Notifications[] @relation("NotificationTo")
+  notificationsCc   Notifications[] @relation("NotificationCc")
+
+  createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model TimeEntry {
   id           Int       @id @default(autoincrement())
   clockIn      DateTime
-  clockOut     DateTime?      // nullable while still on shift
-  breakMinutes Int      @default(0)
+  clockOut     DateTime?
+  breakMinutes Int       @default(0)
   totalHours   Decimal?
-  status       String
-  notes        String?
+
   taskDescription String?
-  kind         String
+  kind            String
+  isLate          Boolean?
 
-  userId       Int
-  user         Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  editRequests TimeEntryEditRequest[]
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  userId Int
+  user   Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimeEntryEditRequest {
+  id          Int       @id @default(autoincrement())
+  timeEntryId Int
+  timeEntry   TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
+  requesterId Int
+  requester   Users     @relation("TimeEntryEditRequester", fields: [requesterId], references: [id])
+
+  proposedClockIn         DateTime
+  proposedKind            String
+  proposedTaskDescription String?
+  employeeNote            String?
+
+  status          TimeEntryEditRequestStatus @default(PENDING)
+  reviewedById    Int?
+  reviewer        Users?                     @relation("TimeEntryEditReviewer", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?
+  reviewerComment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([timeEntryId])
+  @@index([requesterId])
+}
+
+model CalendarReminder {
+  id        Int             @id @default(autoincrement())
+  ownerId   Int
+  owner     Users           @relation("CalendarReminderOwner", fields: [ownerId], references: [id])
+  date      DateTime
+  title     String
+  note      String?
+  time      String?
+  shares    ReminderShare[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([ownerId, date])
+}
+
+model ReminderShare {
+  id         Int              @id @default(autoincrement())
+  reminderId Int
+  userId     Int
+  reminder   CalendarReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  user       Users            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+
+  @@unique([reminderId, userId])
+  @@index([userId])
 }

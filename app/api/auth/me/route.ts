@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { AuthErrors } from "@/config/messages";
 import prisma from "@/lib/prisma";
+import { canApproveTimeLogEdits, canEditEmployeeSchedules } from "@/lib/schedule-editors";
 
 export async function GET(req: Request) {
     try {
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
         const headerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
         const cookieToken = (await cookies()).get("token")?.value;
 
-        const token = headerToken ?? cookieToken;
+        const token = cookieToken ?? headerToken;
         if (!token) {
             return NextResponse.json({ error: AuthErrors.NOT_LOGGED_IN }, { status: 401 });
         }
@@ -43,6 +44,9 @@ export async function GET(req: Request) {
                     lastName: employeeInformation?.lastName ?? null,
                     position: user.companyInformation?.position?.title ?? null,
                     role: user.role,
+                    scheduleStartMinutes: user.employeeInformation?.scheduleStartMinutes ?? null,
+                    canEditEmployeeSchedules: canEditEmployeeSchedules(user.companyInformation?.position?.title),
+                    canApproveTimeLogEdits: canApproveTimeLogEdits(user.companyInformation?.position?.title),
                 },
             },
             { status: 200 }

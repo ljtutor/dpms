@@ -4,9 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
+import { AnimatePresence, motion } from "motion/react";
+
 import { Bell, Eye, Menu, Moon, Sun, X } from "lucide-react";
 
 import Logout from "@/app/auth/logout/page";
+import { usePopoverMotion, usePopoverSpring, useSpringHover, useSpringTap } from "@/lib/motion-presets";
+
 import NotificationMenu from "@/components/layout/NotificationMenu";
 
 export default function Header({
@@ -26,6 +30,11 @@ export default function Header({
 
     const notificationRef = useRef<HTMLDivElement>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
+
+    const pop = usePopoverMotion();
+    const popTransition = usePopoverSpring();
+    const tap = useSpringTap();
+    const hoverScale = useSpringHover();
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -71,8 +80,8 @@ export default function Header({
     }, [user?.id, notificationOpen]);
 
     const toggleNotification = () => {
-        setNotificationOpen(!notificationOpen);
-        if (!notificationOpen) setUserMenuOpen(false);
+        setNotificationOpen((open) => !open);
+        setUserMenuOpen(false);
     };
 
     const toggleTheme = () => {
@@ -100,9 +109,12 @@ export default function Header({
     }, []);
 
     const toggleUserMenu = () => {
-        setUserMenuOpen(!userMenuOpen);
-        if (!userMenuOpen) setNotificationOpen(false);
+        setUserMenuOpen((open) => !open);
+        setNotificationOpen(false);
     };
+
+    const panelRing =
+        "rounded-xl border border-gray-200/80 bg-white shadow-lg ring-1 ring-black/5 dark:border-gray-600 dark:bg-gray-800 dark:ring-white/10";
 
     return (
         <>
@@ -110,80 +122,81 @@ export default function Header({
                 <div className="px-3 py-3 lg:px-5 lg:pl-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center justify-start">
-                            <button onClick={toggleSidebar} className="p-2 text-gray-600 rounded cursor-pointer lg:hidden hover:text-gray-900 hover:bg-gray-100 focus:bg-gray-100 dark:focus:bg-gray-700 focus:ring-2 focus:ring-gray-100 dark:focus:ring-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                            <motion.button type="button" onClick={toggleSidebar} whileTap={tap} whileHover={{ scale: hoverScale }} className="p-2 text-gray-600 rounded-lg cursor-pointer lg:hidden hover:text-gray-900 hover:bg-gray-100 focus:bg-gray-100 dark:focus:bg-gray-700 focus:ring-2 focus:ring-gray-100 dark:focus:ring-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
                                 {sidebarOpen ? (
                                     <X className="w-6 h-6"/>
                                 ) : (
                                     <Menu className="w-6 h-6"/>
                                 )}
-                            </button>
+                            </motion.button>
                             <Link href="/" className="flex ml-2 md:mr-24">
                                 <Image src="/img/logo.png" alt="Data Plus Logo" className="h-auto w-auto mr-3" width={122} height={35} priority/>
                             </Link>
                         </div>
                         <div ref={notificationRef} className="flex items-center">
-                            <button type="button" onClick={toggleNotification} className="relative p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700">
+                            <motion.button type="button" onClick={toggleNotification} aria-expanded={notificationOpen} aria-haspopup="true" aria-controls="notifications-panel" whileTap={tap} whileHover={{ scale: hoverScale }} className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
                                 <Bell className="w-6 h-6"/>
                                 {unreadNotificationCount > 0 && (
                                     <span className="absolute top-0 right-0 flex items-center justify-center w-5 h-5 font-bold text-white bg-red-500 rounded-full border-2 border-white dark:border-gray-800" style={{fontSize: unreadNotificationCount > 9 ? "9px" : "10px"}}>
                                         {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
                                     </span>
                                 )}
-                            </button>
-                            {notificationOpen && (
-                                <div className="absolute right-0 z-50 max-w-sm overflow-hidden text-base list-none border border-gray-200 dark:border-gray-600 bg-white divide-y divide-gray-100 rounded shadow-lg dark:divide-gray-600 dark:bg-gray-700" style={{top: "65px", right: "0", minWidth: "384px"}}>
-                                    <div className="block px-4 py-2 text-base font-medium text-center text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                                        Notifications
-                                    </div>
-                                    <div>
-                                        <NotificationMenu user={user}/>
-                                    </div>
-                                    <Link href="/notifications" className="block py-2 text-base font-normal text-center text-gray-900 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:hover:underline">
-                                        <div className="inline-flex items-center ">
-                                            <Eye className="w-5 h-5 mr-2"/>
-                                            View all
+                            </motion.button>
+                            <AnimatePresence>
+                                {notificationOpen && (
+                                    <motion.div initial={pop.initial} animate={pop.animate} exit={pop.exit} transition={popTransition} className="absolute right-0 z-50 max-w-sm overflow-hidden text-base list-none border border-gray-200 dark:border-gray-600 bg-white divide-y divide-gray-100 rounded shadow-lg dark:divide-gray-600 dark:bg-gray-700" style={{top: "65px", right: "0", minWidth: "384px"}}>
+                                        <div className="block px-4 py-2 text-base font-medium text-center text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                            Notifications
                                         </div>
-                                    </Link>
-                                </div>
-                            )}
-                            <button type="button" onClick={toggleTheme} onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)} id="theme-toggle" className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+                                        <div>
+                                            <NotificationMenu user={user}/>
+                                        </div>
+                                        <Link href="/notifications" className="block py-2 text-base font-normal text-center text-gray-900 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:hover:underline">
+                                            <div className="inline-flex items-center ">
+                                                <Eye className="w-5 h-5 mr-2"/>
+                                                View all
+                                            </div>
+                                        </Link>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                            <motion.button type="button" onClick={toggleTheme} onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)} whileTap={tap} whileHover={{ scale: hoverScale }} id="theme-toggle" className="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
                                 {darkMode ? (
                                     <Sun id="theme-toggle-dark-icon" className="w-5 h-5" />
                                 ) : (
                                     <Moon id="theme-toggle-light-icon" className="w-5 h-5" />
                                 )}
-                            </button>
+                            </motion.button>
                             <div id="tooltip-toggle" className={`absolute z-10 inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm tooltip ${showTooltip ? "opacity-100 visible" : "opacity-0 invisible"}`} style={{position: "absolute", inset: "0px auto auto 0px", margin: "0px", transform: "translate3d(1364px, 63.2px, 0px)"}}>
                                 Toggle {darkMode ? "light" : "dark"} mode
                                 <div className="tooltip-arrow" style={{position: "absolute", left: "0px", transform: "translate3d(68.8px, 0px, 0px)"}}></div>
                             </div>
-                            <div ref={userMenuRef} className="flex items-center ml-3">
-                                <div>
-                                    <button type="button" onClick={toggleUserMenu} id="user-menu-button-2" className="flex text-sm rounded-full focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-600">
-                                        <span className="sr-only">Open user menu</span>
-                                        <Image src="/img/blank-profile.png" alt="Profile" className="w-8 h-8 rounded-full" width={32} height={32}></Image>
-                                    </button>
-                                </div>
-                                {userMenuOpen && (
-                                    <div className="absolute right-0 z-50 text-base list-none bg-white divide-y divide-gray-100 rounded shadow dark:bg-gray-700 dark:divide-gray-600" style={{marginTop: "195px", minWidth: "250px"}}>
-                                        <div className="px-4 py-3">
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white">
-                                                {user?.firstName} {user?.lastName}
-                                            </p>
-                                            <p className="text-sm text-gray-700 truncate dark:text-gray-300">
-                                                {user?.position ?? user?.role}
-                                            </p>
-                                        </div>
-                                        <ul className="py-1">
-                                            <li>
-                                                <Link href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white">Settings</Link>
-                                            </li>
-                                            <li>
-                                                <Logout/>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                )}
+                            <div className="ml-1 sm:ml-2" ref={userMenuRef}>
+                                <motion.button type="button" onClick={toggleUserMenu} aria-expanded={userMenuOpen} aria-haspopup="true" aria-controls="user-menu-panel" whileTap={tap} whileHover={{ scale: hoverScale }} className="flex rounded-full text-sm ring-offset-2 ring-offset-white focus:outline-none focus:ring-4 focus:ring-gray-300 dark:ring-offset-gray-800 dark:focus:ring-gray-600">
+                                    <Image src="/img/blank-profile.png" alt="" className="h-8 w-8 rounded-full" width={32} height={32} />
+                                </motion.button>
+                                <AnimatePresence>
+                                    {userMenuOpen && (
+                                        <motion.div role="menu" initial={pop.initial} animate={pop.animate} exit={pop.exit} transition={popTransition} className="absolute right-0 z-50 text-base list-none bg-white divide-y divide-gray-100 rounded shadow border border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:divide-gray-600" style={{top: "65px", minWidth: "250px"}}>
+                                            <div className="px-4 py-3">
+                                                <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                                    {user?.firstName} {user?.lastName}
+                                                </p>
+                                                <p className="text-sm text-gray-700 truncate dark:text-gray-300">
+                                                    {user?.position ?? user?.role}
+                                                </p>
+                                            </div>
+                                            <ul className="py-1">
+                                                <li>
+                                                    <Link href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white">Settings</Link>
+                                                </li>
+                                                <li>
+                                                    <Logout/>
+                                                </li>
+                                            </ul>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
                     </div>

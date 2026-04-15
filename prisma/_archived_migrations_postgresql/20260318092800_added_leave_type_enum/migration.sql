@@ -1,0 +1,2 @@
+-- CreateEnum
+CREATE TYPE "LeaveType" AS ENUM ('VACATION', 'SICK', 'EMERGENCY', 'NO_PAY', 'OTHERS');
