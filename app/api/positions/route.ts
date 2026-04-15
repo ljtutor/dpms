@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@/app/generated/prisma/client";
-import { AuthErrors, ValidationErrors, SuccessMessages } from "@/config/messages";
 
-const prisma = new PrismaClient();
+import { AuthErrors, ValidationErrors, SuccessMessages } from "@/config/messages";
+import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
     try {
@@ -19,7 +18,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: ValidationErrors.POSITION_ALREADY_EXISTS }, { status: 400 });
         
         await prisma.positions.create({
-            data: { title },
+            data: {
+                title
+            },
         });
         return NextResponse.json(
             {

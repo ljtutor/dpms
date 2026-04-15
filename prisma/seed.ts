@@ -1,11 +1,26 @@
-import { PrismaClient } from '../app/generated/prisma/client';
-import { Role } from '../app/generated/prisma/enums';
-
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+import { Role } from "@/app/generated/prisma/enums";
+import prisma from "@/lib/prisma";
 
 async function main() {
+    // Departments
+    await prisma.departments.create({
+        data: {
+            name: "IT Infrastructure and Development",
+        },
+    });
+    await prisma.departments.create({
+        data: {
+            name: "Sales",
+        },
+    });
+    await prisma.departments.create({
+        data: {
+            name: "Finance and Admin",
+        },
+    });
+
     // Positions
     const TeamLead = await prisma.positions.create({
         data: {
@@ -41,98 +56,208 @@ async function main() {
     // Users
     await prisma.users.create({
         data: {
-            first_name: "Mark Anthony",
-            last_name: "David",
             email: "mark.david@dataplus.com.ph",
             password: await bcrypt.hash("Dataplus@2026", 10),
-            position_id: TeamLead.id,
+            role: Role.MANAGER,
+            employeeInformation: {
+                create: {
+                    firstName: "Mark Anthony",
+                    lastName: "David",
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: TeamLead.id,
+                },
+            },
         },
     });
     await prisma.users.create({
         data: {
-            first_name: "Suzi",
-            last_name: "David",
             email: "suzi.david@dataplus.com.ph",
             password: await bcrypt.hash("Dataplus@2026", 10),
-            position_id: FinanceOfficer.id,
+            role: Role.MANAGER,
+            employeeInformation: {
+                create: {
+                    firstName: "Suzi",
+                    lastName: "David",
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: FinanceOfficer.id,
+                },
+            },
         },
     });
     await prisma.users.create({
         data: {
-            first_name: "Anna Louise",
-            last_name: "De Belen",
             email: "aldebelen@dataplus.com.ph",
             password: await bcrypt.hash("Dataplus@2026", 10),
-            position_id: BusinessDevelopmentManager.id,
+            role: Role.MANAGER,
+            employeeInformation: {
+                create: {
+                    firstName: "Anna Louise",
+                    lastName: "De Belen",
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: BusinessDevelopmentManager.id,
+                },
+            },
         },
     });
     await prisma.users.create({
         data: {
-            first_name: "Delfin",
-            last_name: "Agub",
             email: "dbagub@dataplus.com.ph",
             password: await bcrypt.hash("Dataplus@2026", 10),
-            position_id: BusinessDevelopmentManager.id,
+            role: Role.MANAGER,
+            employeeInformation: {
+                create: {
+                    firstName: "Delfin",
+                    lastName: "Agub",
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: BusinessDevelopmentManager.id,
+                },
+            },
         },
     });
     await prisma.users.create({
         data: {
-            first_name: "Daniel",
-            last_name: "Sabino",
             email: "dsabino@dataplus.com.ph",
             password: await bcrypt.hash("Dataplus@2026", 10),
-            position_id: ProjectManager.id,
+            role: Role.MANAGER,
+            employeeInformation: {
+                create: {
+                    firstName: "Daniel",
+                    lastName: "Sabino",
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: ProjectManager.id,
+                },
+            },
         },
     });
     await prisma.users.create({
         data: {
-            first_name: "Louie Jay",
-            middle_name: "Española",
-            last_name: "Tutor",
             email: "ljtutor@dataplus.com.ph",
             password: await bcrypt.hash("Password@1234", 10),
-            birthday: new Date("2001-05-23"),
-            position_id: ITDeveloper.id,
-            role: Role.ADMIN
+            role: Role.ADMIN,
+            employeeInformation: {
+                create: {
+                    firstName: "Louie Jay",
+                    middleName: "Española",
+                    lastName: "Tutor",
+                    birthday: new Date("2001-05-23"),
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: ITDeveloper.id,
+                },
+            },
         },
     });
     await prisma.users.create({
         data: {
-            first_name: "Michaelangelo",
-            middle_name: "Garcia",
-            last_name: "Guevara Jr.",
             email: "mguevarajr@dataplus.com.ph",
             password: await bcrypt.hash("Password@1234", 10),
-            birthday: new Date("2000-11-15"),
-            position_id: ITDeveloper.id,
-            role: Role.ADMIN
+            role: Role.ADMIN,
+            employeeInformation: {
+                create: {
+                    firstName: "Michaelangelo",
+                    middleName: "Garcia",
+                    lastName: "Guevara Jr.",
+                    birthday: new Date("2000-11-15"),
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: ITDeveloper.id,
+                },
+            },
         },
     });
     await prisma.users.create({
         data: {
-            first_name: "CJ",
-            last_name: "Cabrera",
             email: "cjcabrera@dataplus.com.ph",
             password: await bcrypt.hash("Dataplus@2026", 10),
-            position_id: ITDeveloper.id,
+            role: Role.USER,
+            employeeInformation: {
+                create: {
+                    firstName: "CJ",
+                    lastName: "Cabrera",
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: ITDeveloper.id,
+                },
+            },
         },
     });
     await prisma.users.create({
         data: {
-            first_name: "Ian Andrew",
-            last_name: "Capisanan",
             email: "iacapisanan@dataplus.com.ph",
             password: await bcrypt.hash("Dataplus@2026", 10),
-            position_id: ITTechnicalSupport.id,
+            role: Role.USER,
+            employeeInformation: {
+                create: {
+                    firstName: "Ian Andrew",
+                    lastName: "Capisanan",
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: ITTechnicalSupport.id,
+                },
+            },
         },
     });
     await prisma.users.create({
         data: {
-            first_name: "Jeremy Kemt",
-            last_name: "Ignacio",
             email: "jkignacio@dataplus.com.ph",
             password: await bcrypt.hash("Dataplus@2026", 10),
-            position_id: ITTechnicalSupport.id,
+            role: Role.USER,
+            employeeInformation: {
+                create: {
+                    firstName: "Jeremy Kemt",
+                    lastName: "Ignacio",
+                },
+            },
+            companyInformation: {
+                create: {
+                    positionId: ITTechnicalSupport.id,
+                },
+            },
+        },
+    });
+
+    // Leaves
+    await prisma.leaves.create({
+        data: {
+            type: "Vacation",
+        },
+    });
+    await prisma.leaves.create({
+        data: {
+            type: "Sick",
+        },
+    });
+    await prisma.leaves.create({
+        data: {
+            type: "Emergency",
+        },
+    });
+    await prisma.leaves.create({
+        data: {
+            type: "No Pay Leave",
         },
     });
 

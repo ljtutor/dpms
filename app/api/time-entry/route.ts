@@ -1,18 +1,7 @@
+import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/app/generated/prisma/client";
-import { TimeEntryEditRequestStatus } from "@/app/generated/prisma/enums";
-import { getUserIdFromRequest } from "@/lib/auth-request";
-import {
-  endMinutesAfterStart,
-  formatMinutesAs12h,
-  getScheduleStartMinutes,
-  isLateFirstTimeIn,
-  LUNCH_MINUTES,
-  shiftEndsNextCalendarDay,
-  WORK_MINUTES_EXCLUDING_LUNCH,
-} from "@/lib/schedule";
 
-const prisma = new PrismaClient();
+import prisma from "@/lib/prisma";
 
 function schedulePayload(scheduleStartMinutes: number | null) {
   const start = getScheduleStartMinutes(scheduleStartMinutes);

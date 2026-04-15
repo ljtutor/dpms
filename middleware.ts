@@ -55,18 +55,18 @@ export function middleware(req: NextRequest) {
 export const config = {
     matcher: [
         // Auth pages
-        "/auth/login",
         "/auth/forgot-password",
+        "/auth/login",
 
         // Protected pages
+        "/auth/change-password",
+        "/departments/:path*",
+        "/leaves/:path*",
+        "/notifications/:path*",
         "/positions/:path*",
+        "/requests/leave/:path*",
         "/shifts/:path*",
         "/users/:path*",
-        "/requests/:path*",
-        "/employee-calendar/:path*",
-        "/timekeeping",
-        "/weekly-activity",
-        "/auth/change-password",
     ],
     runtime: "nodejs",
 };

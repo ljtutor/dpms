@@ -1,6 +1,7 @@
 import { Metadata } from "next";
+
+import PositionsClient from "@/components/positions/client";
 import prisma from "@/lib/prisma";
-import PositionsClient from "@/components/positions/PositionsClient";
 
 export const metadata: Metadata = {
     title: "Positions",

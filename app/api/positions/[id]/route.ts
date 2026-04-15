@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@/app/generated/prisma/client";
-import { AuthErrors, ValidationErrors, SuccessMessages } from "@/config/messages";
 
-const prisma = new PrismaClient();
+import { AuthErrors, ValidationErrors, SuccessMessages } from "@/config/messages";
+import prisma from "@/lib/prisma";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -20,16 +19,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             return NextResponse.json({ error: AuthErrors.POSITION_NOT_FOUND }, { status: 401 });
 
         const position_title = await prisma.positions.findUnique({where: { title }});
-        if (position_title)
+        if (position_title && position_title.id !== Number(id))
             return NextResponse.json({ error: ValidationErrors.POSITION_ALREADY_EXISTS }, { status: 400 });
         
         await prisma.positions.update({
             where: { id: Number(id) },
             data: {
-                title,
-                updated_at: new Date()
+                title
             },
         });
+
         return NextResponse.json(
             {
                 message: SuccessMessages.POSITION_UPDATED,
@@ -52,6 +51,12 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         const position = await prisma.positions.findUnique({ where: { id: Number(id) } });
         if (!position)
             return NextResponse.json({ error: AuthErrors.POSITION_NOT_FOUND }, { status: 401 });
+
+        const inUseCount = await prisma.companyInformation.count({
+            where: { positionId: Number(id) },
+        });
+        if (inUseCount > 0)
+            return NextResponse.json({ error: ValidationErrors.POSITION_IN_USE }, { status: 400 });
 
         await prisma.positions.delete({
             where: { id: Number(id) }
