@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 
 import Header from "@/components/layout/Header";
 import Aside from "@/components/layout/Aside";
 import Footer from "@/components/layout/Footer";
 
+type AuthUser = any | null;
+const AuthUserContext = createContext<AuthUser>(null);
+export const useAuthUser = () => useContext(AuthUserContext);
+
 export default function LayoutClient({ children, }: { children: React.ReactNode; }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<AuthUser>(null);
 
   const loadUser = useCallback(async () => {
     const res = await fetch("/api/auth/me", {
@@ -57,7 +61,9 @@ export default function LayoutClient({ children, }: { children: React.ReactNode;
           <div className="flex pt-16 overflow-hidden bg-gray-50 dark:bg-gray-900">
               <Aside sidebarOpen={sidebarOpen} user={user}/>
               <div id="main-content" className="relative w-full h-full overflow-y-auto bg-gray-50 lg:ml-64 dark:bg-gray-900">
-                  <main>{children}</main>
+                  <AuthUserContext.Provider value={user}>
+                    <main>{children}</main>
+                  </AuthUserContext.Provider>
                   <Footer/>
               </div>
           </div>

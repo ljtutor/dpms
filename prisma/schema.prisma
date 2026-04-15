@@ -16,59 +16,145 @@ datasource db {
 
 enum Role {
   ADMIN
+  MANAGER
   USER
 }
 
-enum LeaveType {
-  VACATION
-  SICK
-  EMERGENCY
-  NO_PAY
-  OTHERS
+enum Period {
+  DAY
+  WEEK
+  MONTH
+  YEAR
 }
 
-model Users {
+enum NotificationType {
+  SUBMIT
+  APPROVE
+  DENY
+  ACCEPT
+  DECLINE
+}
+
+model CompanyInformation {
   id Int @id @default(autoincrement())
-  first_name String
-  middle_name String?
-  last_name String
-  email String @unique
-  password String
+  positionId Int?
+  position Positions? @relation(fields: [positionId], references: [id])
+
+  userId Int @unique
+  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model Departments {
+  id Int @id @default(autoincrement())
+  name String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model EmployeeInformation {
+  id Int @id @default(autoincrement())
+  firstName String
+  middleName String?
+  lastName String
   birthday DateTime?
-  position_id Int?
-  position Positions? @relation(fields: [position_id], references: [id])
-  shift_id Int?
-  shift Shifts? @relation(fields: [shift_id], references: [id])
-  role Role @default(USER)
-  timeEntries TimeEntry[]
-  isActive Boolean @default(true)
-  created_at DateTime @default(now())
-  updated_at DateTime?
+  
+  userId Int @unique
+  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model Leaves {
+  id Int @id @default(autoincrement())
+  type String @unique
+  accrualRateManager Float?
+  accrualRateUser Float?
+  accrualPeriod Period?
+  leaveRequests LeaveRequests[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model LeaveRequests {
+  id Int @id @default(autoincrement())
+  userId Int
+  user Users @relation("LeaveRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  dateFiled DateTime
+  leaveTypeId Int
+  leaveType Leaves @relation(fields: [leaveTypeId], references: [id])
+  dateFrom DateTime
+  dateTo DateTime
+  noOfDays Int
+  reason String?
+  eSignature Bytes? @db.ByteA
+  approvedBy Users[] @relation("LeaveRequestApprover")
+  isApproved Boolean @default(false)
+  dateApproved DateTime?
+  receivedBy Int
+  receiver Users @relation("LeaveRequestReceiver", fields: [receivedBy], references: [id])
+  isAccepted Boolean @default(false)
+  dateAccepted DateTime?
+
+  notifications Notifications[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
+}
+
+model Notifications {
+  id Int @id @default(autoincrement())
+  type NotificationType
+  fromId Int
+  fromUser Users @relation("NotificationFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toUsers Users[] @relation("NotificationTo")
+  ccUsers Users[] @relation("NotificationCc")
+  leaveRequestId Int?
+  leaveRequest LeaveRequests? @relation(fields: [leaveRequestId], references: [id], onDelete: Cascade)
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model Positions {
   id Int @id @default(autoincrement())
   title String @unique
-  users Users[]
-  created_at DateTime @default(now())
-  updated_at DateTime?
+
+  companyInformation CompanyInformation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
-model Shifts {
+model Users {
   id Int @id @default(autoincrement())
-  title String @unique
-  start_time DateTime @db.Time(0)
-  end_time DateTime @db.Time(0)
-  users Users[]
-  created_at DateTime @default(now())
-  updated_at DateTime?
+  email String @unique
+  password String
+  role Role @default(USER)
+  isActive Boolean @default(true)
+
+  employeeInformation EmployeeInformation?
+  companyInformation CompanyInformation?
+  timeEntries TimeEntry[]
+  leaveRequests LeaveRequests[] @relation("LeaveRequestUser")
+  leaveRequestApprover LeaveRequests[] @relation("LeaveRequestApprover")
+  leaveRequestReceiver LeaveRequests[] @relation("LeaveRequestReceiver")
+  notificationsFrom Notifications[] @relation("NotificationFrom")
+  notificationsTo Notifications[] @relation("NotificationTo")
+  notificationsCc Notifications[] @relation("NotificationCc")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model TimeEntry {
   id           Int       @id @default(autoincrement())
-  userId       Int
-  user         Users     @relation(fields: [userId], references: [id])
-
   clockIn      DateTime
   clockOut     DateTime?      // nullable while still on shift
   breakMinutes Int      @default(0)
@@ -77,6 +163,9 @@ model TimeEntry {
   notes        String?
   taskDescription String?
   kind         String
+
+  userId       Int
+  user         Users     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

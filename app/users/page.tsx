@@ -1,6 +1,7 @@
 import { Metadata } from "next";
+
+import UsersClient from "@/components/users/client";
 import prisma from "@/lib/prisma";
-import UsersClient from "@/components/users/UsersClient";
 
 export const metadata: Metadata = {
     title: "Users",
@@ -8,7 +9,10 @@ export const metadata: Metadata = {
 
 export default async function Users() {
     const users = await prisma.users.findMany({
-        include: { position: true },
+        include: {
+            employeeInformation: true,
+            companyInformation: { include: { position: true } },
+        },
         orderBy: { id: "asc" },
     });
 
@@ -17,6 +21,6 @@ export default async function Users() {
     });
 
     return (
-        <UsersClient users={users} positions={positions} />
+        <UsersClient users={users} positions={positions}/>
     );
 }

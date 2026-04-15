@@ -32,7 +32,7 @@ export default function FlashMessage({ type, message }: FlashMessageProps) {
                         <X className="h-4 w-4" />
                     </button>
                 </div>
-                : <div className="flex items-center justify-between gap-2 text-sm text-red-500 dark:text-red-700 bg-red-100 dark:bg-red-200 p-2 rounded-md">
+                : <div className="flex items-center justify-between gap-2 mt-4 text-sm text-red-500 dark:text-red-700 bg-red-100 dark:bg-red-200 p-2 rounded-md">
                     <div className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4"/>
                         <span>{message}</span>

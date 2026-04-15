@@ -1,12 +1,9 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-
-import { PrismaClient } from "@/app/generated/prisma/client";
-import { AuthErrors } from "@/config/messages";
-
 import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import { AuthErrors } from "@/config/messages";
+import prisma from "@/lib/prisma";
 
 export async function GET(req: Request) {
     try {
@@ -23,7 +20,10 @@ export async function GET(req: Request) {
 
         const user = await prisma.users.findUnique({
             where: { id: Number(payload.id) },
-            include: { position: true },
+            include: {
+                employeeInformation: true,
+                companyInformation: { include: { position: true } },
+            },
         });
 
         if (!user)
@@ -32,14 +32,16 @@ export async function GET(req: Request) {
         if (!user.isActive)
             return NextResponse.json({ error: AuthErrors.USER_NOT_ACTIVE }, { status: 401 });
 
+        const employeeInformation = user.employeeInformation;
+
         return NextResponse.json(
             {
                 user: {
                     id: user.id,
-                    first_name: user.first_name,
-                    middle_name: user.middle_name,
-                    last_name: user.last_name,
-                    position: user.position?.title ?? null,
+                    firstName: employeeInformation?.firstName ?? null,
+                    middleName: employeeInformation?.middleName ?? null,
+                    lastName: employeeInformation?.lastName ?? null,
+                    position: user.companyInformation?.position?.title ?? null,
                     role: user.role,
                 },
             },

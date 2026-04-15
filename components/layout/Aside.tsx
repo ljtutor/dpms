@@ -7,7 +7,7 @@ import Link from "next/link";
 
 import { Role } from "@/app/generated/prisma/enums";
 
-import { Briefcase, Calendar, ClipboardList, ChevronDown, Clock, Globe, History, Settings, Users } from "lucide-react";
+import { Briefcase, Building2, Calendar, CalendarMinus, ClipboardList, ChevronDown, Clock, Globe, Settings, Users } from "lucide-react";
 
 export default function Aside({
     sidebarOpen,
@@ -39,12 +39,6 @@ export default function Aside({
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link href="/" className={linkClass("/") }>
-                                        <History className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></History>
-                                        <span className="ml-3" sidebar-toggle-item="">Weekly Activity Report</span>
-                                    </Link>
-                                </li>
-                                <li>
                                     <button onClick={() => setOpenRequests(!openRequests)} className="flex items-center w-full p-2 text-base text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
                                         <ClipboardList className="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></ClipboardList>
                                         <span className="flex-1 ml-3 text-left whitespace-nowrap">Requests</span>
@@ -53,7 +47,7 @@ export default function Aside({
                                     {openRequests && (
                                         <ul className="space-y-2 py-2">
                                             <li>
-                                                <Link href="/requests/leave" className={`text-base text-gray-900 rounded-lg flex items-center p-2 group hover:bg-gray-100 transition duration-75 pl-11 dark:text-gray-200 dark:hover:bg-gray-700 ${pathname === "/requests/leave" ? activeClass : ""}`}>Leave</Link>
+                                                <Link href="/requests/leave/" className={`text-base text-gray-900 rounded-lg flex items-center p-2 group hover:bg-gray-100 transition duration-75 pl-11 dark:text-gray-200 dark:hover:bg-gray-700 ${pathname === "/requests/leave" ? activeClass : ""}`}>Leave</Link>
                                             </li>
                                             <li>
                                                 <Link href="/requests/reimbursement" className={`text-base text-gray-900 rounded-lg flex items-center p-2 group hover:bg-gray-100 transition duration-75 pl-11 dark:text-gray-200 dark:hover:bg-gray-700 ${pathname === "/requests/reimbursement" ? activeClass : ""}`}>Reimbursement</Link>
@@ -66,15 +60,21 @@ export default function Aside({
                                 <ul className="pt-2 pb-2 space-y-2">
                                     <h3 className="px-3 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">Admin</h3>
                                     <li>
-                                        <Link href="/positions" className={linkClass("/positions")}>
-                                            <Briefcase className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></Briefcase>
-                                            <span className="ml-3" sidebar-toggle-item="">Positions</span>
+                                        <Link href="/departments" className={linkClass("/departments")}>
+                                            <Building2 className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></Building2>
+                                            <span className="ml-3" sidebar-toggle-item="">Departments</span>
                                         </Link>
                                     </li>
                                     <li>
-                                        <Link href="/shifts" className={linkClass("/shifts")}>
-                                            <Clock className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></Clock>
-                                            <span className="ml-3" sidebar-toggle-item="">Shifts</span>
+                                        <Link href="/leaves" className={linkClass("/leaves")}>
+                                            <CalendarMinus className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></CalendarMinus>
+                                            <span className="ml-3" sidebar-toggle-item="">Leaves</span>
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link href="/positions" className={linkClass("/positions")}>
+                                            <Briefcase className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></Briefcase>
+                                            <span className="ml-3" sidebar-toggle-item="">Positions</span>
                                         </Link>
                                     </li>
                                     <li>
@@ -94,7 +94,7 @@ export default function Aside({
                         </div>
                     </div>
                     <div className="absolute bottom-0 left-0 justify-center hidden w-full p-4 space-x-4 bg-white lg:flex dark:bg-gray-800" sidebar-bottom-menu="true">
-                        <Link href="#" data-tooltip-target="tooltip-settings" className="inline-flex justify-center p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white">
+                        <Link href="/settings" data-tooltip-target="tooltip-settings" className="inline-flex justify-center p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white">
                             <Settings className="w-6 h-6"/>
                         </Link>
                     </div>

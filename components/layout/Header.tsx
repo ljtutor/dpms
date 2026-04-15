@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Bell, Eye, Menu, Moon, Sun, X } from "lucide-react";
 
 import Logout from "@/app/auth/logout/page";
+import NotificationMenu from "@/components/layout/NotificationMenu";
 
 export default function Header({
     sidebarOpen,
@@ -21,6 +22,7 @@ export default function Header({
     const [darkMode, setDarkMode] = useState(false);
     const [showTooltip, setShowTooltip] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
     const notificationRef = useRef<HTMLDivElement>(null);
     const userMenuRef = useRef<HTMLDivElement>(null);
@@ -40,6 +42,33 @@ export default function Header({
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
+
+    useEffect(() => {
+        if (!user?.id) {
+            setUnreadNotificationCount(0);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch("/api/notifications/leave-requests", {
+                    method: "GET",
+                    credentials: "include",
+                });
+                if (!res.ok || cancelled) return;
+                const data = await res.json();
+                if (cancelled) return;
+                setUnreadNotificationCount(
+                    typeof data.unreadCount === "number" ? data.unreadCount : 0,
+                );
+            } catch {
+                if (!cancelled) setUnreadNotificationCount(0);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [user?.id, notificationOpen]);
 
     const toggleNotification = () => {
         setNotificationOpen(!notificationOpen);
@@ -93,28 +122,23 @@ export default function Header({
                             </Link>
                         </div>
                         <div ref={notificationRef} className="flex items-center">
-                            <button type="button" onClick={toggleNotification} className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700">
+                            <button type="button" onClick={toggleNotification} className="relative p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700">
                                 <Bell className="w-6 h-6"/>
+                                {unreadNotificationCount > 0 && (
+                                    <span className="absolute top-0 right-0 flex items-center justify-center w-5 h-5 font-bold text-white bg-red-500 rounded-full border-2 border-white dark:border-gray-800" style={{fontSize: unreadNotificationCount > 9 ? "9px" : "10px"}}>
+                                        {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+                                    </span>
+                                )}
                             </button>
                             {notificationOpen && (
-                                <div className="absolute right-0 z-50 max-w-sm overflow-hidden text-base list-none bg-white divide-y divide-gray-100 rounded shadow-lg dark:divide-gray-600 dark:bg-gray-700" style={{marginTop: "231px"}}>
+                                <div className="absolute right-0 z-50 max-w-sm overflow-hidden text-base list-none border border-gray-200 dark:border-gray-600 bg-white divide-y divide-gray-100 rounded shadow-lg dark:divide-gray-600 dark:bg-gray-700" style={{top: "65px", right: "0", minWidth: "384px"}}>
                                     <div className="block px-4 py-2 text-base font-medium text-center text-gray-700 bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                                         Notifications
                                     </div>
                                     <div>
-                                        <Link href="" className="flex px-4 py-3 border-b hover:bg-gray-100 dark:hover:bg-gray-600 dark:border-gray-600">
-                                            <div className="flex-shrink-0">
-                                                <Image src="/img/blank-profile.png" alt="Profile" className="rounded-full w-11 h-11" height={44} width={44}></Image>
-                                            </div>
-                                            <div className="w-full pl-3">
-                                                <div className="text-gray-500 font-normal text-sm mb-1.5 dark:text-gray-400">
-                                                    New message from <span className="font-semibold text-gray-900 dark:text-white">Bonnie Green</span>: "Hey, what's up? All set for the presentation?"
-                                                </div>
-                                                <div className="text-xs font-medium text-primary-700 dark:text-primary-400">a few moments ago</div>
-                                            </div>
-                                        </Link>
+                                        <NotificationMenu user={user}/>
                                     </div>
-                                    <Link href="" className="block py-2 text-base font-normal text-center text-gray-900 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:hover:underline">
+                                    <Link href="/notifications" className="block py-2 text-base font-normal text-center text-gray-900 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:hover:underline">
                                         <div className="inline-flex items-center ">
                                             <Eye className="w-5 h-5 mr-2"/>
                                             View all
@@ -144,18 +168,15 @@ export default function Header({
                                     <div className="absolute right-0 z-50 text-base list-none bg-white divide-y divide-gray-100 rounded shadow dark:bg-gray-700 dark:divide-gray-600" style={{marginTop: "195px", minWidth: "250px"}}>
                                         <div className="px-4 py-3">
                                             <p className="text-sm font-bold text-gray-900 dark:text-white">
-                                                {user?.first_name} {user?.last_name}
+                                                {user?.firstName} {user?.lastName}
                                             </p>
                                             <p className="text-sm text-gray-700 truncate dark:text-gray-300">
-                                                {user?.position ||
-                                                    (typeof user?.role === "string"
-                                                        ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase()
-                                                        : "")}
+                                                {user?.position ?? user?.role}
                                             </p>
                                         </div>
                                         <ul className="py-1">
                                             <li>
-                                                <Link href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white">Settings</Link>
+                                                <Link href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white">Settings</Link>
                                             </li>
                                             <li>
                                                 <Logout/>

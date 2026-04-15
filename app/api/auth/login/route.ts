@@ -1,11 +1,9 @@
-import { NextResponse } from "next/server";
-import { PrismaClient } from "@/app/generated/prisma/client";
-import { AuthErrors, ValidationErrors, SuccessMessages } from "@/config/messages";
-
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+import { AuthErrors, ValidationErrors, SuccessMessages } from "@/config/messages";
+import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
