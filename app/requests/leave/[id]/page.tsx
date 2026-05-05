@@ -6,12 +6,6 @@ import prisma from "@/lib/prisma";
 
 type PageProps = { params: Promise<{ id: string }> };
 
-function bytesToDataUrl(bytes: Uint8Array): string {
-    const buf = Buffer.from(bytes);
-    const mime = buf[0] === 0xff && buf[1] === 0xd8 ? "image/jpeg" : "image/png";
-    return `data:${mime};base64,${buf.toString("base64")}`;
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
     
@@ -56,16 +50,14 @@ export default async function LeaveRequestDetail({ params }: PageProps) {
 
     if (!leaveRequest) notFound();
 
-    const { eSignature, ...rest } = leaveRequest;
-
     const serialized = {
-        ...rest,
+        ...leaveRequest,
         dateFiled: leaveRequest.dateFiled.toISOString(),
         dateFrom: leaveRequest.dateFrom.toISOString(),
         dateTo: leaveRequest.dateTo.toISOString(),
         dateApproved: leaveRequest.dateApproved?.toISOString() ?? null,
         dateAccepted: leaveRequest.dateAccepted?.toISOString() ?? null,
-        signatureDataUrl: eSignature ? bytesToDataUrl(eSignature) : null,
+        eSignature: leaveRequest.user.employeeInformation?.eSignature,
     };
 
     return <RequestLeaveDetailClient request={serialized as any}/>;

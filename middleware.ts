@@ -65,6 +65,7 @@ export const config = {
         "/notifications/:path*",
         "/positions/:path*",
         "/requests/leave/:path*",
+        "/uploads/:path*",
         "/shifts/:path*",
         "/users/:path*",
         "/requests/:path*",

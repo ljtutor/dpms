@@ -69,6 +69,7 @@ CREATE TABLE "LeaveRequests" (
     "dateTo" TIMESTAMP(3) NOT NULL,
     "noOfDays" INTEGER NOT NULL,
     "reason" TEXT,
+    "attachment" TEXT,
     "eSignature" BYTEA,
     "isApproved" BOOLEAN NOT NULL DEFAULT false,
     "dateApproved" TIMESTAMP(3),

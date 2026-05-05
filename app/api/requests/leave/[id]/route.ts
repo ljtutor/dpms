@@ -4,12 +4,6 @@ import { NotificationType } from "@/app/generated/prisma/enums";
 import { AuthErrors, SuccessMessages, ValidationErrors } from "@/config/messages";
 import prisma from "@/lib/prisma";
 
-function bytesToDataUrl(bytes: Uint8Array): string {
-    const buf = Buffer.from(bytes);
-    const mime = buf[0] === 0xff && buf[1] === 0xd8 ? "image/jpeg" : "image/png";
-    return `data:${mime};base64,${buf.toString("base64")}`;
-}
-
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
@@ -62,7 +56,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
                     dateTo: leaveRequest.dateTo.toISOString(),
                     noOfDays: leaveRequest.noOfDays,
                     reason: leaveRequest.reason,
-                    eSignature: leaveRequest.eSignature ? bytesToDataUrl(leaveRequest.eSignature) : null,
+                    attachment: leaveRequest.attachment,
+                    eSignature: leaveRequest.user.employeeInformation?.eSignature,
                     approvedBy: leaveRequest.approvedBy.map((u) => ({
                         id: u.id,
                         employeeInformation: u.employeeInformation,

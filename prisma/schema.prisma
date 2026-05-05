@@ -59,11 +59,12 @@ model Departments {
 }
 
 model EmployeeInformation {
-  id         Int       @id @default(autoincrement())
-  firstName  String
-  middleName String?
-  lastName   String
-  birthday   DateTime?
+  id          Int       @id @default(autoincrement())
+  firstName   String
+  middleName  String?
+  lastName    String
+  birthday    DateTime?
+  eSignature  String?
 
   /// Minutes from midnight (GMT+8) when the workday starts
   scheduleStartMinutes Int?
@@ -98,7 +99,7 @@ model LeaveRequests {
   dateTo       DateTime
   noOfDays     Int
   reason       String?
-  eSignature   Bytes?    @db.ByteA
+  attachment   String?
   approvedBy   Users[]   @relation("LeaveRequestApprover")
   isApproved   Boolean   @default(false)
   dateApproved DateTime?

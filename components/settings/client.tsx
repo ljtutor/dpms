@@ -4,6 +4,9 @@ import { ChevronRight, Home, Lock} from "lucide-react";
 import Link from "next/link";
 
 import { getEarnedLeaves, getRemainingLeaves, getUsedLeaves } from "@/lib/leaveBalances";
+import { FormEvent,useState } from "react";
+
+import FlashMessage from "@/components/ui/FlashMessage";
 
 type SettingsClientProps = {
     user: any;
@@ -16,12 +19,49 @@ export default function SettingsClient({
     leaves,
     leaveRequests
 }: SettingsClientProps) {
+    const [success, setSuccess] = useState("");
+    const [error, setError] = useState("");
+    
     const formatDate = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString("en-US", {
             month: "long",
             day: "numeric",
             year: "numeric",
         });
+    };
+
+    const attachmentFileLabel = (url: string) =>
+        url.split("/").filter(Boolean).pop() ?? url;
+
+    const handleFormSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setSuccess("");
+        setError("");
+
+        const form = e.currentTarget;
+        const formData = new FormData(form);
+
+        if (user?.id)
+            formData.append("userId", String(user.id));
+        formData.append("dateFiled", new Date().toISOString());
+
+        try {
+            const res = await fetch("/api/settings", {
+                method: "POST",
+                body: formData,
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                setSuccess(data.message);
+            }
+            else {
+                setError(data.error);
+            }
+        } catch (error: any) {
+            setError(error.message);
+        }
     };
 
     return (
@@ -65,7 +105,9 @@ export default function SettingsClient({
                     </div>
                     <div className="p-4 mb-4 bg-white border border-gray-200 rounded-lg shadow-sm 2xl:col-span-2 dark:border-gray-700 sm:p-6 dark:bg-gray-800">
                         <h3 className="mb-4 text-xl font-semibold dark:text-white">Employee Information</h3>
-                        <div className="grid grid-cols-6 gap-6">
+                        {error && <div className="mb-4"><FlashMessage type="error" message={error}/></div>}
+                        {success && <div className="mb-4"><FlashMessage type="success" message={success}/></div>}
+                        <form onSubmit={handleFormSubmit} className="grid grid-cols-6 gap-6">
                             <div className="col-span-6 sm:col-span-3">
                                 <span className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">First Name</span>
                                 <span className="shadow-sm bg-gray-100 border border-gray-300 text-gray-900 sm:text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">{user.employeeInformation?.firstName}</span>
@@ -82,7 +124,20 @@ export default function SettingsClient({
                                 <span className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Birthday</span>
                                 <span className="shadow-sm bg-gray-100 border border-gray-300 text-gray-900 sm:text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">{formatDate(user.employeeInformation?.birthday)}</span>
                             </div>
-                        </div>
+                            <div className="col-span-6 sm:col-span-3">
+                                <label htmlFor="eSignature" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Signature</label>
+                                <input type="file" id="eSignature" name="eSignature" className="cursor-pointer bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full shadow-xs placeholder:text-body" accept="image/png, image/jpeg, image/jpg"/>
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">png, jpg or jpeg files only.</p>
+                                {user.employeeInformation?.eSignature && (
+                                    <a href={user.employeeInformation?.eSignature} className="text-primary-600 sm:text-sm block w-full py-2.5 hover:underline" target="_blank" rel="noopener noreferrer">
+                                        {attachmentFileLabel(user.employeeInformation?.eSignature)}
+                                    </a>
+                                )}
+                            </div>
+                            <div className="col-span-6 sm:col-full">
+                                <button type="submit" className="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Save</button>
+                            </div>
+                        </form>
                     </div>
                     <div className="p-4 mb-4 bg-white border border-gray-200 rounded-lg shadow-sm 2xl:col-span-2 dark:border-gray-700 sm:p-6 dark:bg-gray-800">
                         <h3 className="mb-4 text-xl font-semibold dark:text-white">Company Information</h3>

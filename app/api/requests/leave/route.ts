@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
+import path from "path";
 
 import { NotificationType } from "@/app/generated/prisma/enums";
 import { AuthErrors, ValidationErrors, SuccessMessages } from "@/config/messages";
-import prisma from "@/lib/prisma";
+import { saveUploadedFile } from "@/lib/attachmentUpload";
 import { getRemainingLeaves } from "@/lib/leaveBalances";
+
+import prisma from "@/lib/prisma";
+
+export const UPLOAD_DIR = path.join(process.cwd(), "uploads", "requests", "leave");
+export const UPLOAD_URL_PREFIX = "/uploads/requests/leave";
 
 export async function POST(req: Request) {
     try {
@@ -16,17 +22,13 @@ export async function POST(req: Request) {
         const dateTo = formData.get("dateTo") as string;
         const noOfDays = formData.get("noOfDays") as string;
         const reason = formData.get("reason") as string | null;
+        const attachment = formData.get("attachment") as File | null;
+        let attachmentPath: string | undefined;
+        if (attachment && attachment.size > 0) {
+            attachmentPath = await saveUploadedFile(UPLOAD_DIR, UPLOAD_URL_PREFIX, attachment);
+        }
         const approvedBy = formData.getAll("approvedBy[]") as string[];
         const receivedBy = formData.get("receivedBy") as string;
-
-        const signatureFile = formData.get("signature") as File | null;
-        let eSignatureBytes: Uint8Array | null = null;
-
-        if (signatureFile && signatureFile.size > 0) {
-            const arrayBuffer = await signatureFile.arrayBuffer();
-            const view = new Uint8Array(arrayBuffer);
-            eSignatureBytes = Uint8Array.from(view);
-        }
 
         if (leaveTypeId.trim() === "")
             return NextResponse.json({ error: ValidationErrors.LEAVE_TYPE_REQUIRED }, { status: 400 });
@@ -72,7 +74,7 @@ export async function POST(req: Request) {
                 dateTo: new Date(dateTo),
                 noOfDays: Number(noOfDays),
                 reason,
-                eSignature: eSignatureBytes ? new Uint8Array(eSignatureBytes) : undefined,
+                attachment: attachmentPath ?? null,
                 approvedBy: { connect: approvedBy.map((id: string) => ({ id: Number(id) })) },
                 receivedBy: Number(receivedBy),
             },

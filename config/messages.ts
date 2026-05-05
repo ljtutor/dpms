@@ -78,4 +78,5 @@ export const SuccessMessages = {
     DEPARTMENT_CREATED: "The department has been created successfully.",
     DEPARTMENT_UPDATED: "The department information has been updated successfully.",
     DEPARTMENT_REMOVED: "The department has been removed successfully.",
+    EMPLOYEE_INFORMATION_UPDATED: "The employee information has been updated successfully.",
 };

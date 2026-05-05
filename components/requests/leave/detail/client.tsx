@@ -2,6 +2,7 @@
 
 import { CheckCircle, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -16,6 +17,7 @@ type LeaveRequestProps = {
             employeeInformation: {
                 firstName: string;
                 lastName: string
+                eSignature: string | null;
             };
             companyInformation: {
                 position: {
@@ -31,7 +33,7 @@ type LeaveRequestProps = {
         dateTo: string;
         noOfDays: number;
         reason: string;
-        signatureDataUrl: string | null;
+        attachment: string | null;
         approvedBy: {
             id: number;
             employeeInformation: {
@@ -78,6 +80,9 @@ export default function RequestLeaveDetailClient({ request }: LeaveRequestProps)
             minute: "2-digit",
         });
     };
+
+    const attachmentFileLabel = (url: string) =>
+        url.split("/").filter(Boolean).pop() ?? url;
 
     const handleApproval = async (isApproved: boolean) => {
         setSuccess("");
@@ -285,15 +290,35 @@ export default function RequestLeaveDetailClient({ request }: LeaveRequestProps)
                                 {request.noOfDays}
                             </span>
                         </div>
-                        <div className="col-span-2 xl:col-span-full mb-4 xl:mb-0">
+                        <div className="col-span-1 xl:col-span-full mb-4 xl:mb-0">
                             <label htmlFor="reason" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason</label>
                             <span className="shadow-sm bg-gray-200 border border-gray-300 text-gray-900 sm:text-sm rounded-lg block w-full p-2.5 dark:bg-gray-900 dark:border-gray-700 dark:text-white">
                                 {request.reason !== "" || request.reason ? request.reason : "none"}
                             </span>
                         </div>
                         <div className="col-span-1 xl:col-span-full mb-4 xl:mb-0">
+                            <label htmlFor="attachment" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Attachment</label>
+                            <span className="text-primary-600 sm:text-sm block w-full py-2.5 hover:underline">
+                                {request.attachment && (
+                                    <a href={request.attachment} target="_blank" rel="noopener noreferrer">
+                                        {attachmentFileLabel(request.attachment)}
+                                    </a>
+                                )}
+                            </span>
+                        </div>
+                        <div className="col-span-1 xl:col-span-full mb-4 xl:mb-0">
                             <label htmlFor="signature" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Employeee signature</label>
-                            <input type="file" id="signature" name="signature" className="cursor-pointer bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full shadow-xs placeholder:text-body" accept="image/png, image/jpeg, image/jpg"/>
+                            {request.user?.employeeInformation?.eSignature ? (
+                                <Image
+                                    src={request.user?.employeeInformation?.eSignature}
+                                    alt="eSignature"
+                                    height={200}
+                                    width={200}
+                                    unoptimized
+                                />
+                            ) : (
+                                <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">Please upload your eSignature in your profile settings to be able to sign this leave request.</p>
+                            )}
                         </div>
                         <div className="col-span-1 xl:col-span-full mb-4 xl:mb-0">
                             <span className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Approver/s</span>
