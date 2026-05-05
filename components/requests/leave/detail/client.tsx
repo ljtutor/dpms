@@ -309,13 +309,7 @@ export default function RequestLeaveDetailClient({ request }: LeaveRequestProps)
                         <div className="col-span-1 xl:col-span-full mb-4 xl:mb-0">
                             <label htmlFor="signature" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Employeee signature</label>
                             {request.user?.employeeInformation?.eSignature ? (
-                                <Image
-                                    src={request.user?.employeeInformation?.eSignature}
-                                    alt="eSignature"
-                                    height={200}
-                                    width={200}
-                                    unoptimized
-                                />
+                                <Image src={request.user?.employeeInformation?.eSignature} alt="eSignature" height={200} width={200} unoptimized/>
                             ) : (
                                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-300">Please upload your eSignature in your profile settings to be able to sign this leave request.</p>
                             )}
