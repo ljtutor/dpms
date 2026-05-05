@@ -31,9 +31,19 @@ type CalendarReminder = {
   sharedWith: { id: number; name: string }[];
 };
 
+/** Accepted leave (receiver acknowledged); shown on every user's calendar — no reason/note. */
+type AcceptedLeaveDay = {
+  dateKey: string;
+  leaveRequestId: number;
+  userId: number;
+  userName: string;
+  leaveType: string;
+};
+
 type ApiResponse = {
   reminders: CalendarReminder[];
   users: CalendarUser[];
+  acceptedLeaves: AcceptedLeaveDay[];
 };
 
 type Holiday = {
@@ -186,6 +196,7 @@ export default function EmployeeCalendarPage() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [users, setUsers] = useState<CalendarUser[]>([]);
   const [reminders, setReminders] = useState<CalendarReminder[]>([]);
+  const [acceptedLeaves, setAcceptedLeaves] = useState<AcceptedLeaveDay[]>([]);
   const [sessionReady, setSessionReady] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const tap = useSpringTap();
@@ -247,6 +258,15 @@ export default function EmployeeCalendarPage() {
     return map;
   }, [reminders]);
 
+  const leavesByDate = useMemo(() => {
+    const map: Record<string, AcceptedLeaveDay[]> = {};
+    for (const row of acceptedLeaves) {
+      if (!map[row.dateKey]) map[row.dateKey] = [];
+      map[row.dateKey].push(row);
+    }
+    return map;
+  }, [acceptedLeaves]);
+
   const monthTitle = visibleMonth.toLocaleDateString(undefined, {
     month: "long",
     year: "numeric",
@@ -290,6 +310,7 @@ export default function EmployeeCalendarPage() {
   const selectedDateHolidays = selectedDateKey
     ? holidaysByDate[selectedDateKey] ?? []
     : [];
+  const selectedDateLeaves = selectedDateKey ? leavesByDate[selectedDateKey] ?? [] : [];
 
   const fetchCalendar = async () => {
     if (!sessionReady) return;
@@ -321,6 +342,7 @@ export default function EmployeeCalendarPage() {
       };
       setUsers(calendarJson.users);
       setReminders(calendarJson.reminders);
+      setAcceptedLeaves(Array.isArray(calendarJson.acceptedLeaves) ? calendarJson.acceptedLeaves : []);
       setCurrentUserId(meJson.user?.id ?? null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to load calendar";
@@ -501,7 +523,7 @@ export default function EmployeeCalendarPage() {
               Employee Calendar
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Click any date to add reminders, share with teammates, and view PH holidays.
+              Click any date to add reminders, share with teammates, view PH holidays, and accepted leave (office-wide).
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -594,6 +616,29 @@ export default function EmployeeCalendarPage() {
                 const isToday = key === todayKey;
                 const dayReminders = remindersByDate[key] ?? [];
                 const dayHolidays = holidaysByDate[key] ?? [];
+                const dayLeaves = leavesByDate[key] ?? [];
+
+                type DayChip =
+                  | { kind: "holiday"; key: string; label: string }
+                  | { kind: "leave"; key: string; label: string }
+                  | { kind: "reminder"; key: number; reminder: CalendarReminder };
+
+                const dayChips: DayChip[] = [];
+                for (const name of dayHolidays) {
+                  dayChips.push({ kind: "holiday", key: `${key}-h-${name}`, label: name });
+                }
+                for (const L of dayLeaves) {
+                  dayChips.push({
+                    kind: "leave",
+                    key: `${key}-l-${L.leaveRequestId}-${L.userId}`,
+                    label: `${L.userName} — ${L.leaveType}`,
+                  });
+                }
+                for (const r of dayReminders) {
+                  dayChips.push({ kind: "reminder", key: r.id, reminder: r });
+                }
+                const visibleChips = dayChips.slice(0, 3);
+                const moreChipCount = dayChips.length - visibleChips.length;
 
                 return (
                   <motion.button
@@ -628,37 +673,45 @@ export default function EmployeeCalendarPage() {
                       >
                         {date.getDate()}
                       </span>
-                      {dayReminders.length > 0 && (
+                      {dayChips.length > 0 && (
                         <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                          {dayReminders.length}
+                          {dayChips.length}
                         </span>
                       )}
                     </div>
                     <div className="space-y-1">
-                      {dayHolidays.slice(0, 1).map((name) => (
-                        <div
-                          key={`${key}-${name}`}
-                          className="truncate rounded-full bg-indigo-200 px-2 py-1 text-[11px] text-indigo-800 dark:bg-indigo-400/70 dark:text-slate-900"
-                        >
-                          {name}
-                        </div>
-                      ))}
-                      {dayReminders.slice(0, 2).map((reminder) => (
-                        <div
-                          key={reminder.id}
-                          className="truncate rounded-md bg-blue-600 px-2 py-1 text-[11px] font-medium text-white dark:bg-blue-500 dark:text-white"
-                          style={{
-                            backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
-                            color: "#ffffff",
-                          }}
-                        >
-                          {reminder.time ? `${reminder.time} - ` : ""}
-                          {reminder.title}
-                        </div>
-                      ))}
-                      {dayHolidays.length + dayReminders.length > 3 && (
+                      {visibleChips.map((chip) =>
+                        chip.kind === "holiday" ? (
+                          <div
+                            key={chip.key}
+                            className="dpms-calendar-holiday-chip truncate rounded-full bg-indigo-200 px-2 py-1 text-[11px] text-indigo-800 dark:bg-indigo-400/70 dark:text-white"
+                          >
+                            {chip.label}
+                          </div>
+                        ) : chip.kind === "leave" ? (
+                          <div
+                            key={chip.key}
+                            className="truncate rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-medium text-white dark:bg-emerald-500 dark:text-white"
+                          >
+                            {chip.label}
+                          </div>
+                        ) : (
+                          <div
+                            key={chip.key}
+                            className="truncate rounded-md bg-blue-600 px-2 py-1 text-[11px] font-medium text-white dark:bg-blue-500 dark:text-white"
+                            style={{
+                              backgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
+                              color: "#ffffff",
+                            }}
+                          >
+                            {chip.reminder.time ? `${chip.reminder.time} - ` : ""}
+                            {chip.reminder.title}
+                          </div>
+                        ),
+                      )}
+                      {moreChipCount > 0 && (
                         <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                          +{dayHolidays.length + dayReminders.length - 3} more
+                          +{moreChipCount} more
                         </div>
                       )}
                     </div>
@@ -709,8 +762,27 @@ export default function EmployeeCalendarPage() {
             </div>
 
             {selectedDateHolidays.length > 0 && (
-              <div className="mb-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800 dark:border-violet-800 dark:bg-violet-900/20 dark:text-violet-200">
+              <div className="dpms-calendar-holiday-modal-banner mb-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-800 dark:border-violet-800 dark:bg-violet-900/20 dark:text-violet-200">
                 Holiday: {selectedDateHolidays.join(", ")}
+              </div>
+            )}
+
+            {selectedDateLeaves.length > 0 && (
+              <div className="dpms-calendar-accepted-leave mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-900/25 dark:text-emerald-100">
+                <p className="dpms-calendar-accepted-leave-heading mb-1.5 font-semibold text-emerald-950 dark:text-emerald-50">
+                  Accepted leave (office-wide)
+                </p>
+                <ul className="space-y-1">
+                  {selectedDateLeaves.map((L) => (
+                    <li key={`${L.leaveRequestId}-${L.dateKey}-${L.userId}`}>
+                      <span className="dpms-calendar-accepted-leave-name font-medium">{L.userName}</span>
+                      <span className="dpms-calendar-accepted-leave-type text-emerald-800 dark:text-emerald-200">
+                        {" "}
+                        — {L.leaveType}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
@@ -822,7 +894,7 @@ export default function EmployeeCalendarPage() {
               onChange={(e) => setNoteInput(e.target.value)}
               placeholder="Optional note"
               rows={2}
-              className="mt-3 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className="dpms-calendar-note-input mt-3 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />
 
             <div className="mt-3 rounded-md border border-gray-200 bg-gray-50/90 dark:border-gray-700 dark:bg-gray-950/70">
@@ -919,7 +991,7 @@ export default function EmployeeCalendarPage() {
                               {reminder.title}
                             </div>
                             {reminder.note && (
-                              <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                              <div className="dpms-calendar-reminder-note mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                                 {reminder.note}
                               </div>
                             )}

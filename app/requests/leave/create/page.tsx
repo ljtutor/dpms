@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     title: "Leave Application Form",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function LeaveRequestCreate() {
     const users = await prisma.users.findMany({
         include: {
@@ -21,7 +23,7 @@ export default async function LeaveRequestCreate() {
         where: {
             isActive: true,
             role: {
-                in: [Role.MANAGER],
+                in: [Role.MANAGER, Role.ADMIN],
             },
         },
         orderBy: { id: "asc" },

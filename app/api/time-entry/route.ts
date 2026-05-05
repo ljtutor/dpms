@@ -1,5 +1,15 @@
-import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
+import { TimeEntryEditRequestStatus } from "@/app/generated/prisma/enums";
+import { getUserIdFromRequest } from "@/lib/auth-request";
+import {
+  endMinutesAfterStart,
+  formatMinutesAs12h,
+  getScheduleStartMinutes,
+  isLateFirstTimeIn,
+  LUNCH_MINUTES,
+  shiftEndsNextCalendarDay,
+  WORK_MINUTES_EXCLUDING_LUNCH,
+} from "@/lib/schedule";
 
 import prisma from "@/lib/prisma";
 
@@ -39,9 +49,15 @@ export async function POST(req: NextRequest) {
 
     const userRow = await prisma.users.findUnique({
       where: { id: userId },
-      select: { scheduleStartMinutes: true },
+      select: {
+        employeeInformation: {
+          select: { scheduleStartMinutes: true },
+        },
+      },
     });
-    const scheduleStartM = getScheduleStartMinutes(userRow?.scheduleStartMinutes ?? null);
+    const scheduleStartM = getScheduleStartMinutes(
+      userRow?.employeeInformation?.scheduleStartMinutes ?? null
+    );
 
     // Update the previous entry's duration fields (duration until this new log)
     const previousEntry = await prisma.timeEntry.findFirst({
@@ -135,7 +151,11 @@ export async function GET(req: NextRequest) {
 
     const userRow = await prisma.users.findUnique({
       where: { id: userId },
-      select: { scheduleStartMinutes: true },
+      select: {
+        employeeInformation: {
+          select: { scheduleStartMinutes: true },
+        },
+      },
     });
 
     const now = new Date();
@@ -182,7 +202,7 @@ export async function GET(req: NextRequest) {
       {
         entries: entriesOut,
         totalWorkMinutesToday: Math.round(totalWorkMinutesToday * 100) / 100,
-        schedule: schedulePayload(userRow?.scheduleStartMinutes ?? null),
+        schedule: schedulePayload(userRow?.employeeInformation?.scheduleStartMinutes ?? null),
       },
       { status: 200 }
     );

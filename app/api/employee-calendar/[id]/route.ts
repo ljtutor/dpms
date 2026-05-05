@@ -3,6 +3,12 @@ import { PrismaClient } from "@/app/generated/prisma/client";
 import { getUserIdFromRequest } from "@/lib/auth-request";
 
 const prisma = new PrismaClient();
+function fullNameFromUser(u: {
+  employeeInformation: { firstName: string; lastName: string } | null;
+}) {
+  return `${u.employeeInformation?.firstName ?? ""} ${u.employeeInformation?.lastName ?? ""}`.trim();
+}
+
 
 function startOfDay(date: Date) {
   const d = new Date(date);
@@ -139,10 +145,20 @@ export async function PATCH(
               : undefined,
         },
         include: {
-          owner: { select: { id: true, first_name: true, last_name: true } },
+          owner: {
+            select: {
+              id: true,
+              employeeInformation: { select: { firstName: true, lastName: true } },
+            },
+          },
           shares: {
             include: {
-              user: { select: { id: true, first_name: true, last_name: true } },
+              user: {
+                select: {
+                  id: true,
+                  employeeInformation: { select: { firstName: true, lastName: true } },
+                },
+              },
             },
           },
         },
@@ -159,11 +175,11 @@ export async function PATCH(
           date: updated.date.toISOString(),
           owner: {
             id: updated.owner.id,
-            name: `${updated.owner.first_name} ${updated.owner.last_name}`.trim(),
+            name: fullNameFromUser(updated.owner),
           },
           sharedWith: updated.shares.map((s) => ({
             id: s.user.id,
-            name: `${s.user.first_name} ${s.user.last_name}`.trim(),
+            name: fullNameFromUser(s.user),
           })),
         },
       },

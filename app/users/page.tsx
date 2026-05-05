@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     title: "Users",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function Users() {
     const users = await prisma.users.findMany({
         include: {

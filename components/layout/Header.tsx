@@ -129,7 +129,7 @@ export default function Header({
                                     <Menu className="w-6 h-6"/>
                                 )}
                             </motion.button>
-                            <Link href="/" className="flex ml-2 md:mr-24">
+                            <Link href="/timekeeping" className="flex ml-2 md:mr-24">
                                 <Image src="/img/logo.png" alt="Data Plus Logo" className="h-auto w-auto mr-3" width={122} height={35} priority/>
                             </Link>
                         </div>

@@ -73,7 +73,7 @@ export default function LoginClient() {
             sessionStorage.removeItem("error");
 
             setSuccess(data.message);
-            window.location.href = "/";
+            window.location.href = "/timekeeping";
         }
         else {
             setError(data.error);
@@ -82,7 +82,7 @@ export default function LoginClient() {
 
     return (
         <div className="flex flex-col items-center justify-center px-6 pt-8 mx-auto md:h-screen pt:mt-0 dark:bg-gray-900">
-            <Link href="/" className="flex items-center justify-center mb-4 text-2xl font-semibold dark:text-white">
+            <Link href="/auth/login" className="flex items-center justify-center mb-4 text-2xl font-semibold dark:text-white">
                 <Image src="/img/logo.png" alt="Data Plus Logo" className="w-auto" width={135} height={50} loading="eager"/>
             </Link>
             <div className="w-full max-w-xl p-6 space-y-8 sm:p-8 bg-white rounded-lg shadow dark:bg-gray-800">

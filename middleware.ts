@@ -1,78 +1,60 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { AuthErrors } from "@/config/messages";
-
 import jwt from "jsonwebtoken";
 
+function isLoggedIn(token: string | undefined): boolean {
+  if (!token) return false;
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return false;
+  try {
+    const payload = jwt.verify(token, secret);
+    return payload !== null && typeof payload === "object" && "id" in payload;
+  } catch {
+    return false;
+  }
+}
+
 export function middleware(req: NextRequest) {
-    const { pathname } = req.nextUrl;
-    const authPath = "/auth/login";
-    const token = req.cookies.get("token")?.value;
-    const isAuthPage =
-        pathname === "/auth/login" ||
-        pathname === "/auth/forgot-password";
+  const { pathname } = req.nextUrl;
 
-    // Auth page not logged in.
-    if (isAuthPage && !token) {
-        return NextResponse.next();
+  // Static assets and public files (served from /public or similar)
+  if (
+    pathname.startsWith("/css/") ||
+    pathname.startsWith("/img/") ||
+    /\.(?:ico|png|jpg|jpeg|gif|svg|webp|css|js|woff2?)$/i.test(pathname)
+  ) {
+    return NextResponse.next();
+  }
+
+  const token = req.cookies.get("token")?.value;
+  const loggedIn = isLoggedIn(token);
+
+  const isPublicAuthPage =
+    pathname === "/auth/login" || pathname === "/auth/forgot-password";
+
+  if (isPublicAuthPage) {
+    if (loggedIn) {
+      return NextResponse.redirect(new URL("/timekeeping", req.url));
     }
+    return NextResponse.next();
+  }
 
-    // Auth page already logged in.
-    if (isAuthPage && token) {
-        try {
-            const secret = process.env.JWT_SECRET;
-            if (!secret) throw new Error(AuthErrors.SERVER_ERROR);
-
-            const payload = jwt.verify(token, secret);
-            if (payload && typeof payload === "object" && "id" in payload) {
-                return NextResponse.redirect(new URL("/", req.url));
-            }
-        } catch {
-            return NextResponse.next();
-        }
-
-        return NextResponse.next();
+  if (pathname === "/") {
+    if (loggedIn) {
+      return NextResponse.redirect(new URL("/timekeeping", req.url));
     }
-    
-    if (!token) return NextResponse.redirect(new URL("/auth/login", req.url));
+    return NextResponse.redirect(new URL("/auth/login", req.url));
+  }
 
-    try {
-        const secret = process.env.JWT_SECRET;
-        if (!secret) throw new Error(AuthErrors.SERVER_ERROR);
+  if (!loggedIn) {
+    return NextResponse.redirect(new URL("/auth/login", req.url));
+  }
 
-        const payload = jwt.verify(token, secret);
-        if (!payload || typeof payload !== "object" || !("id" in payload)) {
-            throw new Error(AuthErrors.INVALID_TOKEN);
-        }
-
-        return NextResponse.next();
-    } catch {
-        return NextResponse.redirect(new URL("/auth/login", req.url));
-    }
+  return NextResponse.next();
 }
 
 export const config = {
-    matcher: [
-        // Auth pages
-        "/auth/forgot-password",
-        "/auth/login",
-
-        // Protected pages
-        "/auth/change-password",
-        "/departments/:path*",
-        "/leaves/:path*",
-        "/notifications/:path*",
-        "/positions/:path*",
-        "/requests/leave/:path*",
-        "/uploads/:path*",
-        "/shifts/:path*",
-        "/users/:path*",
-        "/requests/:path*",
-        "/employee-calendar/:path*",
-        "/timekeeping",
-        "/weekly-activity",
-        "/auth/change-password",
-    ],
-    runtime: "nodejs",
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  runtime: "nodejs",
 };

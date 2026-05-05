@@ -141,10 +141,9 @@ export default function TimekeepingPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   /** Login uses httpOnly cookie; JS can’t read it — session is confirmed via /api/auth/me */
   const [sessionReady, setSessionReady] = useState(false);
-  /** Only Team Lead, Finance Officer, BDM, PM may use Edit Schedule (matches API). */
+  /** Managers by position and admins may use Edit Schedule (matches API). */
   const [canEditSchedules, setCanEditSchedules] = useState(false);
   const [taskDescription, setTaskDescription] = useState("");
-  const [totalWorkMinutesToday, setTotalWorkMinutesToday] = useState<number>(0);
   const [authError, setAuthError] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<ScheduleInfo>(DEFAULT_SCHEDULE);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -237,7 +236,6 @@ export default function TimekeepingPage() {
           pendingEditRequest?: { id: number; status: string } | null;
         }>;
 
-        setTotalWorkMinutesToday(Number(data.totalWorkMinutesToday) || 0);
         if (data.schedule && typeof data.schedule === "object") {
           setSchedule(data.schedule as ScheduleInfo);
         }
@@ -302,7 +300,6 @@ export default function TimekeepingPage() {
             isLate: boolean | null;
             pendingEditRequest?: { id: number; status: string } | null;
           }>;
-          setTotalWorkMinutesToday(Number(data.totalWorkMinutesToday) || 0);
           if (data.schedule && typeof data.schedule === "object") {
             setSchedule(data.schedule as ScheduleInfo);
           }
@@ -514,7 +511,6 @@ export default function TimekeepingPage() {
           pendingEditRequest?: { id: number; status: string } | null;
         }>;
         setLogs(entries.map(mapApiEntryToLog));
-        setTotalWorkMinutesToday(Number(data.totalWorkMinutesToday) || 0);
       }
       setLogEditEntry(null);
     } catch {
@@ -1025,8 +1021,8 @@ export default function TimekeepingPage() {
               </h2>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
                 You can change the <span className="font-medium">date and time</span> (for example, moving a late Time Out
-                back to the correct day). A Team Lead, Finance Officer, Business Development Manager, or Project Manager
-                must approve before the log updates.
+                back to the correct day). An approver (manager-level by position or admin) must approve before the log
+                updates.
               </p>
 
               <div className="mt-4">

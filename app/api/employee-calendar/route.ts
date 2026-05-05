@@ -16,6 +16,80 @@ function endOfDay(date: Date) {
   return d;
 }
 
+function fullNameFromUser(u: {
+  employeeInformation: { firstName: string; lastName: string } | null;
+}) {
+  return `${u.employeeInformation?.firstName ?? ""} ${u.employeeInformation?.lastName ?? ""}`.trim();
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+/** Local calendar YYYY-MM-DD (matches employee-calendar UI). */
+function localDateKey(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** Expand accepted leave range into each local calendar day overlapping [monthStart, monthEnd]. */
+function expandAcceptedLeavesForMonth(
+  leaves: Array<{
+    id: number;
+    userId: number;
+    dateFrom: Date;
+    dateTo: Date;
+    user: {
+      employeeInformation: { firstName: string; lastName: string } | null;
+    };
+    leaveType: { type: string };
+  }>,
+  monthStart: Date,
+  monthEnd: Date,
+): Array<{
+  dateKey: string;
+  leaveRequestId: number;
+  userId: number;
+  userName: string;
+  leaveType: string;
+}> {
+  const monthFirst = startOfDay(monthStart);
+  const monthLast = endOfDay(monthEnd);
+  const out: Array<{
+    dateKey: string;
+    leaveRequestId: number;
+    userId: number;
+    userName: string;
+    leaveType: string;
+  }> = [];
+
+  for (const lr of leaves) {
+    const leaveStart = startOfDay(new Date(lr.dateFrom));
+    const leaveEnd = endOfDay(new Date(lr.dateTo));
+    const rangeStartMs = Math.max(leaveStart.getTime(), monthFirst.getTime());
+    const rangeEndMs = Math.min(leaveEnd.getTime(), monthLast.getTime());
+    if (rangeStartMs > rangeEndMs) continue;
+
+    const rangeStart = new Date(rangeStartMs);
+    const rangeEnd = new Date(rangeEndMs);
+    let cur = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate());
+    const lastDay = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate());
+
+    const userName = fullNameFromUser(lr.user);
+    while (cur.getTime() <= lastDay.getTime()) {
+      out.push({
+        dateKey: localDateKey(cur),
+        leaveRequestId: lr.id,
+        userId: lr.userId,
+        userName,
+        leaveType: lr.leaveType.type,
+      });
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+
+  return out;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const userResult = await getUserIdFromRequest(req);
@@ -41,37 +115,82 @@ export async function GET(req: NextRequest) {
     const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
     const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
 
-    const reminders = await prisma.calendarReminder.findMany({
-      where: {
-        date: {
-          gte: startOfDay(monthStart),
-          lte: endOfDay(monthEnd),
+    const [reminders, acceptedLeavesRaw] = await Promise.all([
+      prisma.calendarReminder.findMany({
+        where: {
+          date: {
+            gte: startOfDay(monthStart),
+            lte: endOfDay(monthEnd),
+          },
+          OR: [
+            { ownerId: currentUserId },
+            { shares: { some: { userId: currentUserId } } },
+          ],
         },
-        OR: [
-          { ownerId: currentUserId },
-          { shares: { some: { userId: currentUserId } } },
-        ],
-      },
-      include: {
-        owner: { select: { id: true, first_name: true, last_name: true } },
-        shares: {
-          include: {
-            user: { select: { id: true, first_name: true, last_name: true } },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              employeeInformation: { select: { firstName: true, lastName: true } },
+            },
+          },
+          shares: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  employeeInformation: { select: { firstName: true, lastName: true } },
+                },
+              },
+            },
           },
         },
-      },
-      orderBy: [{ date: "asc" }, { createdAt: "asc" }],
-    });
+        orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+      }),
+      prisma.leaveRequests.findMany({
+        where: {
+          isAccepted: true,
+          user: { isActive: true },
+          dateFrom: { lte: endOfDay(monthEnd) },
+          dateTo: { gte: startOfDay(monthStart) },
+        },
+        select: {
+          id: true,
+          userId: true,
+          dateFrom: true,
+          dateTo: true,
+          user: {
+            select: {
+              employeeInformation: { select: { firstName: true, lastName: true } },
+            },
+          },
+          leaveType: { select: { type: true } },
+        },
+      }),
+    ]);
+
+    const acceptedLeaves = expandAcceptedLeavesForMonth(acceptedLeavesRaw, monthStart, monthEnd);
 
     const shareableUsers = await prisma.users.findMany({
       where: { isActive: true },
       select: {
         id: true,
-        first_name: true,
-        last_name: true,
-        position: { select: { title: true } },
+        employeeInformation: { select: { firstName: true, lastName: true } },
+        companyInformation: {
+          select: {
+            position: { select: { title: true } },
+          },
+        },
       },
-      orderBy: [{ first_name: "asc" }, { last_name: "asc" }],
+    });
+
+    shareableUsers.sort((a, b) => {
+      const aFirst = a.employeeInformation?.firstName ?? "";
+      const bFirst = b.employeeInformation?.firstName ?? "";
+      if (aFirst !== bFirst) return aFirst.localeCompare(bFirst);
+      const aLast = a.employeeInformation?.lastName ?? "";
+      const bLast = b.employeeInformation?.lastName ?? "";
+      return aLast.localeCompare(bLast);
     });
 
     return NextResponse.json(
@@ -84,18 +203,19 @@ export async function GET(req: NextRequest) {
           date: r.date.toISOString(),
           owner: {
             id: r.owner.id,
-            name: `${r.owner.first_name} ${r.owner.last_name}`.trim(),
+            name: fullNameFromUser(r.owner),
           },
           sharedWith: r.shares.map((s) => ({
             id: s.user.id,
-            name: `${s.user.first_name} ${s.user.last_name}`.trim(),
+            name: fullNameFromUser(s.user),
           })),
         })),
         users: shareableUsers.map((u) => ({
           id: u.id,
-          name: `${u.first_name} ${u.last_name}`.trim(),
-          position: u.position?.title ?? null,
+          name: fullNameFromUser(u),
+          position: u.companyInformation?.position?.title ?? null,
         })),
+        acceptedLeaves,
       },
       { status: 200 },
     );
@@ -162,10 +282,20 @@ export async function POST(req: NextRequest) {
           : undefined,
       },
       include: {
-        owner: { select: { id: true, first_name: true, last_name: true } },
+        owner: {
+          select: {
+            id: true,
+            employeeInformation: { select: { firstName: true, lastName: true } },
+          },
+        },
         shares: {
           include: {
-            user: { select: { id: true, first_name: true, last_name: true } },
+            user: {
+              select: {
+                id: true,
+                employeeInformation: { select: { firstName: true, lastName: true } },
+              },
+            },
           },
         },
       },
@@ -181,11 +311,11 @@ export async function POST(req: NextRequest) {
           date: created.date.toISOString(),
           owner: {
             id: created.owner.id,
-            name: `${created.owner.first_name} ${created.owner.last_name}`.trim(),
+            name: fullNameFromUser(created.owner),
           },
           sharedWith: created.shares.map((s) => ({
             id: s.user.id,
-            name: `${s.user.first_name} ${s.user.last_name}`.trim(),
+            name: fullNameFromUser(s.user),
           })),
         },
       },

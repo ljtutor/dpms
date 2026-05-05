@@ -4,7 +4,7 @@ import Link from "next/link";
 export default function ForgotPassword() {
   return (
     <div className="flex flex-col items-center justify-center px-6 pt-8 mx-auto md:h-screen pt:mt-0 dark:bg-gray-900">
-        <Link href="/" className="flex items-center justify-center mb-4 text-2xl font-semibold dark:text-white">
+        <Link href="/auth/login" className="flex items-center justify-center mb-4 text-2xl font-semibold dark:text-white">
             <Image src="/img/logo.png" alt="Data Plus Logo" className="w-auto" width={135} height={50}/>
         </Link>
         <div className="w-full bg-white rounded-lg shadow md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800">

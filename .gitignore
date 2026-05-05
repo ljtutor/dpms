@@ -17,9 +17,6 @@
 /.next/
 /out/
 
-# user uploads
-/uploads/
-
 # production
 /build
 

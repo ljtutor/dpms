@@ -5,9 +5,17 @@ import { canEditEmployeeSchedules } from "@/lib/schedule-editors";
 
 const prisma = new PrismaClient();
 
-function displayName(u: { first_name: string; middle_name: string | null; last_name: string }) {
-  const mid = u.middle_name?.trim();
-  return [u.first_name, mid, u.last_name].filter(Boolean).join(" ");
+function displayName(u: {
+  employeeInformation: {
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
+  } | null;
+}) {
+  const first = u.employeeInformation?.firstName ?? "";
+  const mid = u.employeeInformation?.middleName?.trim();
+  const last = u.employeeInformation?.lastName ?? "";
+  return [first, mid, last].filter(Boolean).join(" ").trim();
 }
 
 export async function GET(req: NextRequest) {
@@ -17,14 +25,17 @@ export async function GET(req: NextRequest) {
 
     const me = await prisma.users.findUnique({
       where: { id: userResult.userId },
-      include: { position: true },
+      include: {
+        employeeInformation: true,
+        companyInformation: { include: { position: true } },
+      },
     });
 
     if (!me || !me.isActive) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const canEditOthers = canEditEmployeeSchedules(me.position?.title);
+    const canEditOthers = canEditEmployeeSchedules(me.companyInformation?.position?.title, me.role);
 
     if (!canEditOthers) {
       return NextResponse.json(
@@ -39,8 +50,19 @@ export async function GET(req: NextRequest) {
 
     const rows = await prisma.users.findMany({
       where: { isActive: true },
-      include: { position: true },
-      orderBy: [{ last_name: "asc" }, { first_name: "asc" }],
+      include: {
+        employeeInformation: true,
+        companyInformation: { include: { position: true } },
+      },
+    });
+
+    rows.sort((a, b) => {
+      const aLast = a.employeeInformation?.lastName ?? "";
+      const bLast = b.employeeInformation?.lastName ?? "";
+      if (aLast !== bLast) return aLast.localeCompare(bLast);
+      const aFirst = a.employeeInformation?.firstName ?? "";
+      const bFirst = b.employeeInformation?.firstName ?? "";
+      return aFirst.localeCompare(bFirst);
     });
 
     return NextResponse.json({
@@ -49,8 +71,8 @@ export async function GET(req: NextRequest) {
       employees: rows.map((u) => ({
         id: u.id,
         name: displayName(u),
-        position: u.position?.title ?? null,
-        scheduleStartMinutes: u.scheduleStartMinutes,
+        position: u.companyInformation?.position?.title ?? null,
+        scheduleStartMinutes: u.employeeInformation?.scheduleStartMinutes ?? null,
       })),
     });
   } catch (error) {

@@ -225,7 +225,7 @@ export default function TimeLogEditsPage() {
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">My edit requests</h2>
           {!canApprove && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Only your own requests are shown. Approvals are handled by Team Lead, Finance Officer, BDM, or Project Manager.
+              Only your own requests are shown. Approvals are handled by manager-level approvers or admins.
             </p>
           )}
           {mine.length === 0 ? (

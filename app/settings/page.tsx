@@ -10,6 +10,8 @@ export const metadata: Metadata = {
     title: "Settings",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function SettingsPage() {
     const cookieToken = (await cookies()).get("token")?.value;
     if (!cookieToken) redirect("/auth/login");

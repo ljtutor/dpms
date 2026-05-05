@@ -223,3 +223,148 @@ span.dpms-status-rejected {
     background-color: #7c2d12;
     color: #fed7aa !important;
 }
+
+/*
+ * Timesheets — Export Excel (same Tailwind gap as Timekeeping: legacy bundle misses bg utilities).
+ */
+button.dpms-btn-export-excel {
+    -webkit-appearance: none;
+    appearance: none;
+    align-items: center;
+    background-color: #2563eb;
+    border: 2px solid #1d4ed8;
+    border-radius: 0.75rem;
+    box-shadow:
+        0 4px 6px -1px rgba(15, 23, 42, 0.12),
+        0 2px 4px -2px rgba(15, 23, 42, 0.08);
+    color: #fff !important;
+    cursor: pointer;
+    display: inline-flex;
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    gap: 0.5rem;
+    justify-content: center;
+    line-height: 1.25rem;
+    padding: 0.625rem 1rem;
+}
+
+button.dpms-btn-export-excel:hover:not(:disabled) {
+    background-color: #1d4ed8;
+    border-color: #1e40af;
+}
+
+button.dpms-btn-export-excel:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+button.dpms-btn-export-excel:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+button.dpms-btn-export-excel svg {
+    color: #fff;
+    flex-shrink: 0;
+    height: 1rem;
+    width: 1rem;
+}
+
+.dark button.dpms-btn-export-excel {
+    background-color: #2563eb;
+    border-color: #60a5fa;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.35);
+}
+
+.dark button.dpms-btn-export-excel:hover:not(:disabled) {
+    background-color: #3b82f6;
+    border-color: #93c5fd;
+}
+
+/* Hide native date picker glyph (duplicate / wrong contrast vs our Lucide calendar). */
+input.dpms-timesheet-date-input::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
+}
+
+input.dpms-timesheet-date-input::-moz-calendar-picker-indicator {
+    display: none;
+}
+
+button.dpms-timesheet-calendar-trigger {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-radius: 0.375rem;
+    color: #4b5563;
+    cursor: pointer;
+    display: inline-flex;
+    flex-shrink: 0;
+    padding: 0.125rem;
+}
+
+button.dpms-timesheet-calendar-trigger:hover {
+    background-color: rgba(15, 23, 42, 0.06);
+    color: #111827;
+}
+
+button.dpms-timesheet-calendar-trigger:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+.dark button.dpms-timesheet-calendar-trigger {
+    color: #e5e7eb;
+}
+
+.dark button.dpms-timesheet-calendar-trigger:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+/*
+ * Employee calendar modal — legacy app.css bundle often misses dark: text utilities.
+ */
+.dark .dpms-calendar-accepted-leave {
+    background-color: rgba(6, 78, 59, 0.45) !important;
+    border-color: #059669 !important;
+    color: #ecfdf5 !important;
+}
+
+.dark .dpms-calendar-accepted-leave .dpms-calendar-accepted-leave-heading {
+    color: #ffffff !important;
+}
+
+.dark .dpms-calendar-accepted-leave .dpms-calendar-accepted-leave-name {
+    color: #ffffff !important;
+}
+
+.dark .dpms-calendar-accepted-leave .dpms-calendar-accepted-leave-type {
+    color: #a7f3d0 !important;
+}
+
+.dark textarea.dpms-calendar-note-input {
+    color: #f9fafb !important;
+}
+
+.dark textarea.dpms-calendar-note-input::placeholder {
+    color: #9ca3af !important;
+    opacity: 1;
+}
+
+.dark .dpms-calendar-reminder-note {
+    color: #d1d5db !important;
+}
+
+.dark .dpms-calendar-holiday-chip {
+    background-color: rgba(99, 102, 241, 0.38) !important;
+    color: #f5f3ff !important;
+}
+
+.dark .dpms-calendar-holiday-modal-banner {
+    border-color: #7c3aed !important;
+    background-color: rgba(76, 29, 149, 0.42) !important;
+    color: #f5f3ff !important;
+}

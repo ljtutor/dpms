@@ -7,6 +7,8 @@ export const metadata: Metadata = {
     title: "Positions",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function Positions() {
     const positions = await prisma.positions.findMany({
         orderBy: { id: "asc" },

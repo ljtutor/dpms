@@ -121,7 +121,7 @@ export default function LeavesClient({ leaves }: LeavesClientProps) {
                         <nav className="flex mb-5">
                             <ol className="inline-flex items-center space-x-1 text-sm font-medium md:space-x-2">
                                 <li className="inline-flex items-center">
-                                    <Link href="/" className="inline-flex items-center text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white">
+                                    <Link href="/timekeeping" className="inline-flex items-center text-gray-700 hover:text-primary-600 dark:text-gray-300 dark:hover:text-white">
                                         <Home className="w-5 h-5 mr-2.5"/> Data Plus Management System
                                     </Link>
                                 </li>

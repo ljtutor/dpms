@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@/app/generated/prisma/client";
+import { Role } from "@/app/generated/prisma/enums";
 import ExcelJS from "exceljs";
 import { getUserIdFromRequest } from "@/lib/auth-request";
 
@@ -46,27 +47,36 @@ export async function GET(req: NextRequest) {
 
     const currentUser = await prisma.users.findUnique({
       where: { id: currentUserId },
-      include: { position: true },
+      include: {
+        employeeInformation: true,
+        companyInformation: { include: { position: true } },
+      },
     });
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
 
-    const canViewOthers = MANAGER_POSITIONS.has(currentUser.position?.title ?? "");
+    const canViewOthers =
+      currentUser.role === Role.ADMIN ||
+      MANAGER_POSITIONS.has(currentUser.companyInformation?.position?.title ?? "");
     let targetUserId = currentUserId;
-    let targetEmployeeNames: { first_name: string; last_name: string } | null = null;
+    let targetEmployeeNames: { firstName: string; lastName: string } | null = null;
     if (canViewOthers && requestedUserId && Number.isInteger(requestedUserId)) {
       const requestedUser = await prisma.users.findUnique({
         where: { id: requestedUserId },
-        include: { position: true },
+        include: {
+          employeeInformation: true,
+          companyInformation: { include: { position: true } },
+        },
       });
       const requestedIsEmployee =
-        !!requestedUser && !MANAGER_POSITIONS.has(requestedUser.position?.title ?? "");
+        !!requestedUser &&
+        !MANAGER_POSITIONS.has(requestedUser.companyInformation?.position?.title ?? "");
       if (requestedIsEmployee) {
         targetUserId = requestedUserId;
         targetEmployeeNames = {
-          first_name: requestedUser.first_name,
-          last_name: requestedUser.last_name,
+          firstName: requestedUser.employeeInformation?.firstName ?? "",
+          lastName: requestedUser.employeeInformation?.lastName ?? "",
         };
       }
     }
@@ -164,18 +174,24 @@ export async function GET(req: NextRequest) {
     if (searchParams.get("format") !== "xlsx") {
       const users = canViewOthers
         ? await prisma.users.findMany({
-            where: {
-              isActive: true,
-              position: {
-                title: {
-                  notIn: Array.from(MANAGER_POSITIONS),
-                },
-              },
+            where: { isActive: true },
+            include: {
+              employeeInformation: true,
+              companyInformation: { include: { position: true } },
             },
-            include: { position: true },
-            orderBy: [{ first_name: "asc" }, { last_name: "asc" }],
           })
         : [];
+
+      const employeeUsers = users
+        .filter((u) => !MANAGER_POSITIONS.has(u.companyInformation?.position?.title ?? ""))
+        .sort((a, b) => {
+          const aFirst = a.employeeInformation?.firstName ?? "";
+          const bFirst = b.employeeInformation?.firstName ?? "";
+          if (aFirst !== bFirst) return aFirst.localeCompare(bFirst);
+          const aLast = a.employeeInformation?.lastName ?? "";
+          const bLast = b.employeeInformation?.lastName ?? "";
+          return aLast.localeCompare(bLast);
+        });
 
       return NextResponse.json(
         {
@@ -183,10 +199,10 @@ export async function GET(req: NextRequest) {
           weekEnd: weekEnd.toISOString(),
           canViewOthers,
           selectedUserId: targetUserId,
-          users: users.map((u) => ({
+          users: employeeUsers.map((u) => ({
             id: u.id,
-            name: `${u.first_name} ${u.last_name}`.trim(),
-            position: u.position?.title ?? null,
+            name: `${u.employeeInformation?.firstName ?? ""} ${u.employeeInformation?.lastName ?? ""}`.trim(),
+            position: u.companyInformation?.position?.title ?? null,
           })),
           days: days.map((d) => ({
             date: d.date.toISOString(),
@@ -206,8 +222,9 @@ export async function GET(req: NextRequest) {
     }
 
     const employeeDisplayName = targetEmployeeNames
-      ? `${targetEmployeeNames.first_name} ${targetEmployeeNames.last_name}`.trim()
-      : `${currentUser.first_name} ${currentUser.last_name}`.trim() || `User ${targetUserId}`;
+      ? `${targetEmployeeNames.firstName} ${targetEmployeeNames.lastName}`.trim()
+      : `${currentUser.employeeInformation?.firstName ?? ""} ${currentUser.employeeInformation?.lastName ?? ""}`.trim() ||
+        `User ${targetUserId}`;
 
     const maxRows = Math.max(0, ...days.map((d) => d.entries.length));
     const headerCells = [employeeDisplayName, ...days.map((d) => d.label)];

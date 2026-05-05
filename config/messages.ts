@@ -19,6 +19,9 @@ export const ValidationErrors = {
     EMAIL_REQUIRED: "The email address is required.",
     INVALID_EMAIL_FORMAT: "The email address format is invalid.",
     PASSWORD_REQUIRED: "The password is required.",
+    NEW_PASSWORD_REQUIRED: "The new password is required.",
+    PASSWORDS_DO_NOT_MATCH: "The new passwords you entered do not match.",
+    NEW_PASSWORD_MUST_DIFFER: "Your new password must be different from your current password.",
     FIRST_NAME_REQUIRED: "The first name is required.",
     LAST_NAME_REQUIRED: "The last name is required.",
     INVALID_USER_ID: "The user ID is invalid.",
@@ -78,5 +81,4 @@ export const SuccessMessages = {
     DEPARTMENT_CREATED: "The department has been created successfully.",
     DEPARTMENT_UPDATED: "The department information has been updated successfully.",
     DEPARTMENT_REMOVED: "The department has been removed successfully.",
-    EMPLOYEE_INFORMATION_UPDATED: "The employee information has been updated successfully.",
 };

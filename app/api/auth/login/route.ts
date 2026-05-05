@@ -7,7 +7,9 @@ import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    const body = await req.json();
+    const email = typeof body?.email === "string" ? body.email : "";
+    const password = typeof body?.password === "string" ? body.password : "";
 
     if (email.trim() === "")
       return NextResponse.json({ error: ValidationErrors.EMAIL_REQUIRED }, { status: 400 });
@@ -29,12 +31,18 @@ export async function POST(req: Request) {
     if (!validPassword)
       return NextResponse.json({ error: AuthErrors.INCORRECT_PASSWORD }, { status: 401 });
 
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error("[auth/login] Missing JWT_SECRET");
+      return NextResponse.json({ error: "Server configuration error." }, { status: 500 });
+    }
+
     const token = jwt.sign(
       {
         id: user.id,
         email: user.email
       },
-      process.env.JWT_SECRET!,
+      secret,
       { expiresIn: "1d" }
     );
 
@@ -58,6 +66,10 @@ export async function POST(req: Request) {
 
     return response;
   } catch (error) {
+    console.error("[auth/login] Login failed", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json({ error: AuthErrors.SERVER_ERROR }, { status: 500 });
   }
 }

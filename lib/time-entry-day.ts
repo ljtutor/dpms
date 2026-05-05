@@ -53,9 +53,15 @@ export async function recalculateDayTimeEntries(prisma: PrismaClient, userId: nu
 
   const userRow = await prisma.users.findUnique({
     where: { id: userId },
-    select: { scheduleStartMinutes: true },
+    select: {
+      employeeInformation: {
+        select: { scheduleStartMinutes: true },
+      },
+    },
   });
-  const scheduleStartM = getScheduleStartMinutes(userRow?.scheduleStartMinutes ?? null);
+  const scheduleStartM = getScheduleStartMinutes(
+    userRow?.employeeInformation?.scheduleStartMinutes ?? null
+  );
 
   await prisma.timeEntry.updateMany({
     where: {

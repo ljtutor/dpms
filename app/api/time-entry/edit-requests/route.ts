@@ -7,9 +7,17 @@ const prisma = new PrismaClient();
 
 const LOG_KINDS = new Set(["Time In", "Task", "Break", "Lunch", "Time Out"]);
 
-function displayName(u: { first_name: string; middle_name: string | null; last_name: string }) {
-  const mid = u.middle_name?.trim();
-  return [u.first_name, mid, u.last_name].filter(Boolean).join(" ");
+function displayName(u: {
+  employeeInformation: {
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
+  } | null;
+}) {
+  const first = u.employeeInformation?.firstName ?? "";
+  const mid = u.employeeInformation?.middleName?.trim();
+  const last = u.employeeInformation?.lastName ?? "";
+  return [first, mid, last].filter(Boolean).join(" ").trim();
 }
 
 /** GET ?scope=pending (approvers) | mine (current user's requests) */
@@ -22,21 +30,29 @@ export async function GET(req: NextRequest) {
 
     const me = await prisma.users.findUnique({
       where: { id: userResult.userId },
-      include: { position: true },
+      include: {
+        employeeInformation: true,
+        companyInformation: { include: { position: true } },
+      },
     });
     if (!me?.isActive) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (scope === "pending") {
-      if (!canApproveTimeLogEdits(me.position?.title)) {
+      if (!canApproveTimeLogEdits(me.companyInformation?.position?.title, me.role)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       const rows = await prisma.timeEntryEditRequest.findMany({
         where: { status: TimeEntryEditRequestStatus.PENDING },
         orderBy: { createdAt: "asc" },
         include: {
-          requester: { include: { position: true } },
+          requester: {
+            include: {
+              employeeInformation: true,
+              companyInformation: { include: { position: true } },
+            },
+          },
           timeEntry: true,
         },
       });
@@ -52,7 +68,7 @@ export async function GET(req: NextRequest) {
           requester: {
             id: r.requester.id,
             name: displayName(r.requester),
-            position: r.requester.position?.title ?? null,
+            position: r.requester.companyInformation?.position?.title ?? null,
           },
           timeEntry: {
             id: r.timeEntry.id,

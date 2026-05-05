@@ -10,6 +10,8 @@ export const metadata: Metadata = {
     title: "Leave Requests",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function LeaveRequests() {
     const token = (await cookies()).get("token")?.value;
     if (!token) redirect("/auth/login");

@@ -4,6 +4,7 @@
 generator client {
   provider = "prisma-client"
   output   = "../app/generated/prisma"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -59,12 +60,11 @@ model Departments {
 }
 
 model EmployeeInformation {
-  id          Int       @id @default(autoincrement())
-  firstName   String
-  middleName  String?
-  lastName    String
-  birthday    DateTime?
-  eSignature  String?
+  id         Int       @id @default(autoincrement())
+  firstName  String
+  middleName String?
+  lastName   String
+  birthday   DateTime?
 
   /// Minutes from midnight (GMT+8) when the workday starts
   scheduleStartMinutes Int?
@@ -99,7 +99,7 @@ model LeaveRequests {
   dateTo       DateTime
   noOfDays     Int
   reason       String?
-  attachment   String?
+  eSignature   Bytes?    @db.ByteA
   approvedBy   Users[]   @relation("LeaveRequestApprover")
   isApproved   Boolean   @default(false)
   dateApproved DateTime?

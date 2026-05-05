@@ -31,16 +31,17 @@ export async function PATCH(req: NextRequest) {
 
     const actor = await prisma.users.findUnique({
       where: { id: sessionUserId },
-      include: { position: true },
+      include: {
+        companyInformation: { include: { position: true } },
+      },
     });
     if (!actor?.isActive) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!canEditEmployeeSchedules(actor.position?.title)) {
+    if (!canEditEmployeeSchedules(actor.companyInformation?.position?.title, actor.role)) {
       return NextResponse.json(
         {
-          error:
-            "Only Team Lead, Finance Officer, Business Development Manager, and Project Manager can edit schedules.",
+          error: "Only manager-level approvers or admins can edit schedules.",
         },
         { status: 403 },
       );
@@ -61,9 +62,21 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    const targetForSchedule = await prisma.users.findUnique({
+      where: { id: targetUserId },
+      select: { employeeInformation: { select: { id: true } } },
+    });
+    if (!targetForSchedule?.employeeInformation) {
+      return NextResponse.json({ error: "Employee profile is incomplete." }, { status: 400 });
+    }
+
     await prisma.users.update({
       where: { id: targetUserId },
-      data: { scheduleStartMinutes: raw },
+      data: {
+        employeeInformation: {
+          update: { scheduleStartMinutes: raw },
+        },
+      },
     });
 
     return NextResponse.json({ ok: true, scheduleStartMinutes: raw, targetUserId }, { status: 200 });

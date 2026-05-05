@@ -45,11 +45,8 @@ export async function GET(req: Request) {
                     position: user.companyInformation?.position?.title ?? null,
                     role: user.role,
                     scheduleStartMinutes: user.employeeInformation?.scheduleStartMinutes ?? null,
-                    canEditEmployeeSchedules: canEditEmployeeSchedules(user.companyInformation?.position?.title),
-                    canApproveTimeLogEdits: canApproveTimeLogEdits(user.companyInformation?.position?.title),
-                    employeeInformation: employeeInformation
-                        ? { eSignature: employeeInformation.eSignature }
-                        : null,
+                    canEditEmployeeSchedules: canEditEmployeeSchedules(user.companyInformation?.position?.title, user.role),
+                    canApproveTimeLogEdits: canApproveTimeLogEdits(user.companyInformation?.position?.title, user.role),
                 },
             },
             { status: 200 }

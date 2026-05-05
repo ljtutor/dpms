@@ -11,6 +11,8 @@ export const metadata: Metadata = {
     title: "Notifications",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function NotificationsPage() {
 
     const cookieToken = (await cookies()).get("token")?.value;

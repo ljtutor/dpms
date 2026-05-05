@@ -20,12 +20,14 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
     const reviewer = await prisma.users.findUnique({
       where: { id: userResult.userId },
-      include: { position: true },
+      include: {
+        companyInformation: { include: { position: true } },
+      },
     });
     if (!reviewer?.isActive) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (!canApproveTimeLogEdits(reviewer.position?.title)) {
+    if (!canApproveTimeLogEdits(reviewer.companyInformation?.position?.title, reviewer.role)) {
       return NextResponse.json({ error: "Only approvers may review time log edits." }, { status: 403 });
     }
 

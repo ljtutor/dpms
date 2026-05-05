@@ -10,7 +10,7 @@ import { Role } from "@/app/generated/prisma/enums";
 
 
 import { useSpringTap } from "@/lib/motion-presets";
-import { Briefcase, Building2, Calendar, CalendarDays, CalendarMinus, ClipboardList, ChevronDown, Globe, History, Settings, Users } from "lucide-react";
+import { Briefcase, Building2, Calendar, CalendarDays, CalendarMinus, ClipboardList, ChevronDown, FileSpreadsheet, Globe, History, Settings, Users } from "lucide-react";
 
 export default function Aside({
     sidebarOpen,
@@ -42,6 +42,14 @@ export default function Aside({
                                         <span className="ml-3" sidebar-toggle-item="">Timekeeping</span>
                                     </Link>
                                 </li>
+                                {(user?.role === Role.MANAGER || user?.role === Role.ADMIN) && (
+                                <li>
+                                    <Link href="/timesheets" className={linkClass("/timesheets")}>
+                                        <FileSpreadsheet className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></FileSpreadsheet>
+                                        <span className="ml-3" sidebar-toggle-item="">Timesheets</span>
+                                    </Link>
+                                </li>
+                                )}
                                 <li>
                                     <Link href="/weekly-activity" className={linkClass("/weekly-activity")}>
                                         <History className="w-6 h-6 text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"></History>
